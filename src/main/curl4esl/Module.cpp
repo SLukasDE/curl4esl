@@ -1,6 +1,6 @@
 /*
 MIT License
-Copyright (c) 2019 Sven Lukas
+Copyright (c) 2019, 2020 Sven Lukas
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,28 +22,26 @@ SOFTWARE.
 
 #include <curl4esl/Module.h>
 #include <curl4esl/Connection.h>
+
 #include <esl/http/client/Interface.h>
-//#include <esl/http/server/RequestHandlerFactory.h>
-#include <esl/bootstrap/Interface.h>
+#include <esl/module/Interface.h>
+
+#include <memory>
 #include <new>         // placement new
 #include <type_traits> // aligned_storage
 
 namespace curl4esl {
 
 namespace {
-class Module : public esl::bootstrap::Module {
+
+class Module : public esl::module::Module {
 public:
-	Module() = default;
-	~Module() = default;
-
-	static void initialize();
-
-private:
-	esl::http::client::Interface interfaceHttpClient;
+	Module();
 };
 
 typename std::aligned_storage<sizeof(Module), alignof(Module)>::type moduleBuffer; // memory for the object;
 Module& module = reinterpret_cast<Module&> (moduleBuffer);
+bool isInitialized = false;
 
 esl::http::client::Interface::Connection* createConnection(
 		const std::string& hostUrl,
@@ -57,25 +55,26 @@ esl::http::client::Interface::Connection* createConnection(
 	return new Connection(hostUrl, timeout, username, password, proxy, proxyUser, proxyPassword, userAgent);
 }
 
-void Module::initialize() {
-	static bool isInitialized = false;
+Module::Module()
+: esl::module::Module()
+{
+	esl::module::Module::initialize(*this);
 
+	addInterface(std::unique_ptr<const esl::module::Interface>(new esl::http::client::Interface(
+			getId(), "", &createConnection)));
+}
+
+} /* anonymous namespace */
+
+const esl::module::Module& getModule() {
 	if(isInitialized == false) {
-		isInitialized = true;
-
 		/* ***************** *
 		 * initialize module *
 		 * ***************** */
-		new (&module) Module(); // placement new
-		esl::bootstrap::Module::initialize(module);
-		esl::http::client::Interface::initialize(module.interfaceHttpClient, &createConnection);
-		module.interfacesProvided.next = &module.interfaceHttpClient;
-	}
-}
-}
 
-const esl::bootstrap::Module& getModule() {
-	Module::initialize();
+		isInitialized = true;
+		new (&module) Module(); // placement new
+	}
 	return module;
 }
 

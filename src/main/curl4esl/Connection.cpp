@@ -1,6 +1,6 @@
 /*
 MIT License
-Copyright (c) 2019 Sven Lukas
+Copyright (c) 2019, 2020 Sven Lukas
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@ SOFTWARE.
 #include <esl/Stacktrace.h>
 #include <esl/logging/Logger.h>
 #include <cstdio>
+#include <sstream>
 
 namespace curl4esl {
 
@@ -238,10 +239,10 @@ void Connection::prepareRequest(esl::http::client::Response& response, const esl
         }
     }
     else {
-        std::ostringstream ostr;
-        ostr << "Fehlercode=" << res << " (" << curl_easy_strerror(res) << ") bei curl-Anfrage";
+        std::ostringstream strStream;
+        strStream << "Fehlercode=" << res << " (" << curl_easy_strerror(res) << ") bei curl-Anfrage";
         curl_slist_free_all(hlist);
-        std::string str = ostr.str();
+        std::string str = strStream.str();
         throw esl::addStacktrace(esl::http::client::NetworkException(str));
     }
     curl_slist_free_all(hlist);
