@@ -25,7 +25,9 @@ SOFTWARE.
 
 #include <esl/http/client/Interface.h>
 #include <esl/module/Interface.h>
+#include <esl/Stacktrace.h>
 
+#include <stdexcept>
 #include <memory>
 #include <new>         // placement new
 #include <type_traits> // aligned_storage
@@ -61,21 +63,36 @@ Module::Module()
 	esl::module::Module::initialize(*this);
 
 	addInterface(std::unique_ptr<const esl::module::Interface>(new esl::http::client::Interface(
-			getId(), "curl", &createConnection)));
+			getId(), "curl4esl", &createConnection)));
 }
 
 } /* anonymous namespace */
 
-esl::module::Module& getModule() {
-	if(isInitialized == false) {
-		/* ***************** *
-		 * initialize module *
-		 * ***************** */
+esl::module::Module* getModulePointer(const std::string& moduleName) {
+	if(moduleName.empty() || moduleName != "curl4esl") {
+		if(isInitialized == false) {
+			/* ***************** *
+			 * initialize module *
+			 * ***************** */
 
-		isInitialized = true;
-		new (&module) Module(); // placement new
+			isInitialized = true;
+			new (&module) Module(); // placement new
+		}
+
+		return &module;
 	}
-	return module;
+
+	return esl::getModulePointer(moduleName);
+}
+
+esl::module::Module& getModule(const std::string& moduleName) {
+	esl::module::Module* modulePointer = getModulePointer(moduleName);
+
+	if(modulePointer == nullptr) {
+		throw esl::addStacktrace(std::runtime_error("request for unknown module \"" + moduleName + "\""));
+	}
+
+	return *modulePointer;
 }
 
 } /* namespace curl4esl */
