@@ -27,8 +27,7 @@ SOFTWARE.
 
 namespace curl4esl {
 
-esl::module::Module* getModulePointer(const std::string& moduleName = "");
-esl::module::Module& getModule(const std::string& moduleName = "");
+esl::module::Module& getModule();
 
 } /* namespace curl4esl */
 
