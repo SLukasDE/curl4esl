@@ -20,52 +20,34 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <curl4esl/Module.h>
-#include <curl4esl/http/client/Connection.h>
+#ifndef CURL4ESL_HTTP_CLIENT_REQUESTHANDLERFILE_H_
+#define CURL4ESL_HTTP_CLIENT_REQUESTHANDLERFILE_H_
 
-#include <esl/http/client/Interface.h>
-#include <esl/module/Interface.h>
-#include <esl/Stacktrace.h>
+#include <esl/http/client/RequestFile.h>
 
-#include <stdexcept>
-#include <memory>
-#include <new>         // placement new
-#include <type_traits> // aligned_storage
+#include <string>
+#include <fstream>
 
 namespace curl4esl {
+namespace http {
+namespace client {
 
-namespace {
-
-class Module : public esl::module::Module {
+struct RequestHandlerFile {
 public:
-	Module();
+	RequestHandlerFile(const esl::http::client::RequestFile& request);
+
+	static size_t readDataCallback(void* data, size_t size, size_t nmemb, void* requestPtr);
+
+	const std::size_t getSize() const noexcept;
+
+private:
+	std::ifstream file;
+	const std::size_t size = 0;
+	std::size_t pos = 0;
 };
 
-typename std::aligned_storage<sizeof(Module), alignof(Module)>::type moduleBuffer; // memory for the object;
-Module* modulePtr = nullptr;
-
-Module::Module()
-: esl::module::Module()
-{
-	esl::module::Module::initialize(*this);
-
-	addInterface(std::unique_ptr<const esl::module::Interface>(new esl::http::client::Interface(
-			getId(), http::client::Connection::getImplementation(), &http::client::Connection::create)));
-}
-
-} /* anonymous namespace */
-
-esl::module::Module& getModule() {
-	if(modulePtr == nullptr) {
-		/* ***************** *
-		 * initialize module *
-		 * ***************** */
-
-		modulePtr = reinterpret_cast<Module*> (&moduleBuffer);
-		new (modulePtr) Module; // placement new
-	}
-
-	return *modulePtr;
-}
-
+} /* namespace client */
+} /* namespace http */
 } /* namespace curl4esl */
+
+#endif /* CURL4ESL_HTTP_CLIENT_REQUESTHANDLERFILE_H_ */

@@ -20,52 +20,28 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <curl4esl/Module.h>
-#include <curl4esl/http/client/Connection.h>
-
-#include <esl/http/client/Interface.h>
-#include <esl/module/Interface.h>
-#include <esl/Stacktrace.h>
-
-#include <stdexcept>
-#include <memory>
-#include <new>         // placement new
-#include <type_traits> // aligned_storage
+#include <curl4esl/http/client/ResponseHandler.h>
 
 namespace curl4esl {
+namespace http {
+namespace client {
 
-namespace {
+ResponseHandler::ResponseHandler(esl::http::client::ResponseHandler* aHandler)
+: handler(aHandler)
+{ }
 
-class Module : public esl::module::Module {
-public:
-	Module();
-};
+size_t  ResponseHandler::writeDataCallback(void* data, size_t size, size_t nmemb, void* responseHandlerPtr) {
+	ResponseHandler& responseHandler = *reinterpret_cast<ResponseHandler*>(responseHandlerPtr);
 
-typename std::aligned_storage<sizeof(Module), alignof(Module)>::type moduleBuffer; // memory for the object;
-Module* modulePtr = nullptr;
-
-Module::Module()
-: esl::module::Module()
-{
-	esl::module::Module::initialize(*this);
-
-	addInterface(std::unique_ptr<const esl::module::Interface>(new esl::http::client::Interface(
-			getId(), http::client::Connection::getImplementation(), &http::client::Connection::create)));
-}
-
-} /* anonymous namespace */
-
-esl::module::Module& getModule() {
-	if(modulePtr == nullptr) {
-		/* ***************** *
-		 * initialize module *
-		 * ***************** */
-
-		modulePtr = reinterpret_cast<Module*> (&moduleBuffer);
-		new (modulePtr) Module; // placement new
+	if(responseHandler.handler) {
+		if(responseHandler.handler->process(static_cast<const char*>(data), size*nmemb) == false) {
+			responseHandler.handler = nullptr;
+		}
 	}
 
-	return *modulePtr;
+	return size*nmemb;
 }
 
+} /* namespace client */
+} /* namespace http */
 } /* namespace curl4esl */

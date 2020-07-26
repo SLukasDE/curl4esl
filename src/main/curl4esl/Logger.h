@@ -20,52 +20,20 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <curl4esl/Module.h>
-#include <curl4esl/http/client/Connection.h>
+#ifndef CURL4ESL_LOGGER_H_
+#define CURL4ESL_LOGGER_H_
 
-#include <esl/http/client/Interface.h>
-#include <esl/module/Interface.h>
-#include <esl/Stacktrace.h>
-
-#include <stdexcept>
-#include <memory>
-#include <new>         // placement new
-#include <type_traits> // aligned_storage
+#include <esl/logging/Logger.h>
+#include <esl/logging/Level.h>
 
 namespace curl4esl {
 
-namespace {
-
-class Module : public esl::module::Module {
-public:
-	Module();
-};
-
-typename std::aligned_storage<sizeof(Module), alignof(Module)>::type moduleBuffer; // memory for the object;
-Module* modulePtr = nullptr;
-
-Module::Module()
-: esl::module::Module()
-{
-	esl::module::Module::initialize(*this);
-
-	addInterface(std::unique_ptr<const esl::module::Interface>(new esl::http::client::Interface(
-			getId(), http::client::Connection::getImplementation(), &http::client::Connection::create)));
-}
-
-} /* anonymous namespace */
-
-esl::module::Module& getModule() {
-	if(modulePtr == nullptr) {
-		/* ***************** *
-		 * initialize module *
-		 * ***************** */
-
-		modulePtr = reinterpret_cast<Module*> (&moduleBuffer);
-		new (modulePtr) Module; // placement new
-	}
-
-	return *modulePtr;
-}
+#ifdef CURL4ESL_LOGGING_LEVEL_DEBUG
+using Logger = esl::logging::Logger<esl::logging::Level::TRACE>;
+#else
+using Logger = esl::logging::Logger<esl::logging::Level::ERROR>;
+#endif
 
 } /* namespace curl4esl */
+
+#endif /* CURL4ESL_LOGGER_H_ */

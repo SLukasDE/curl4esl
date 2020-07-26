@@ -20,52 +20,39 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <curl4esl/Module.h>
-#include <curl4esl/http/client/Connection.h>
+#ifndef CURL4ESL_HTTP_CLIENT_RESPONSEHANDLER_H_
+#define CURL4ESL_HTTP_CLIENT_RESPONSEHANDLER_H_
 
-#include <esl/http/client/Interface.h>
-#include <esl/module/Interface.h>
-#include <esl/Stacktrace.h>
+#include <esl/http/client/ResponseHandler.h>
 
-#include <stdexcept>
-#include <memory>
-#include <new>         // placement new
-#include <type_traits> // aligned_storage
+#include <cstdlib>
 
 namespace curl4esl {
+namespace http {
+namespace client {
 
-namespace {
-
-class Module : public esl::module::Module {
+class ResponseHandler {
 public:
-	Module();
+	ResponseHandler(esl::http::client::ResponseHandler* handler);
+
+	/**
+	* @brief write callback function for libcurl
+	*
+	* @param data returned data of size (size*nmemb)
+	* @param size size parameter
+	* @param nmemb memblock parameter
+	* @param responseHandlerPtr pointer to user data to save/work with return data
+	*
+	* @return (size * nmemb)
+	*/
+	static size_t writeDataCallback(void* data, size_t size, size_t nmemb, void* responseHandlerPtr);
+
+private:
+	esl::http::client::ResponseHandler* handler;
 };
 
-typename std::aligned_storage<sizeof(Module), alignof(Module)>::type moduleBuffer; // memory for the object;
-Module* modulePtr = nullptr;
-
-Module::Module()
-: esl::module::Module()
-{
-	esl::module::Module::initialize(*this);
-
-	addInterface(std::unique_ptr<const esl::module::Interface>(new esl::http::client::Interface(
-			getId(), http::client::Connection::getImplementation(), &http::client::Connection::create)));
-}
-
-} /* anonymous namespace */
-
-esl::module::Module& getModule() {
-	if(modulePtr == nullptr) {
-		/* ***************** *
-		 * initialize module *
-		 * ***************** */
-
-		modulePtr = reinterpret_cast<Module*> (&moduleBuffer);
-		new (modulePtr) Module; // placement new
-	}
-
-	return *modulePtr;
-}
-
+} /* namespace client */
+} /* namespace http */
 } /* namespace curl4esl */
+
+#endif /* CURL4ESL_HTTP_CLIENT_RESPONSEHANDLER_H_ */
