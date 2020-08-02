@@ -40,6 +40,7 @@ SOFTWARE.
 #include <sstream>
 #include <fstream>
 
+#include <iostream>
 namespace curl4esl {
 namespace http {
 namespace client {
@@ -78,6 +79,25 @@ std::string createAuthenticationStr(const std::string& username, const std::stri
     return username;
 }
 
+enum LastCallback {
+	lcNone,
+	lcData,
+	lcHeader
+};
+LastCallback lastCallback = lcNone;
+size_t writeDataCallback(void* data, size_t size, size_t nmemb, void* responseHandlerPtr) {
+	if(lastCallback == lcNone) {
+		std::cout << "### writeDataCallback (first)\n";
+	}
+	else if(lastCallback == lcHeader) {
+		std::cout << "### writeDataCallback\n";
+	}
+	else {
+//		std::cout << "writeDataCallback\n";
+	}
+	lastCallback = lcData;
+	return ResponseHandler::writeDataCallback(data, size, nmemb, responseHandlerPtr);
+}
 
 /**
 * @brief header callback for libcurl
@@ -89,6 +109,14 @@ std::string createAuthenticationStr(const std::string& username, const std::stri
 * @return size * nmemb;
 */
 size_t writeHeaderCallback(void* data, size_t size, size_t nmemb, void* headersPtr) {
+	if(lastCallback == lcNone) {
+		std::cout << "writeHeaderCallback (first)\n";
+	}
+	else if(lastCallback == lcData) {
+		std::cout << "writeHeaderCallback\n";
+	}
+	lastCallback = lcHeader;
+
 	std::map<std::string, std::string>& headers = *reinterpret_cast<std::map<std::string, std::string>*>(headersPtr);
 
 	std::string header(reinterpret_cast<char*>(data), size*nmemb);
@@ -98,15 +126,16 @@ size_t writeHeaderCallback(void* data, size_t size, size_t nmemb, void* headersP
 	std::string value;
 
 	if(seperator == std::string::npos) {
-		key = esl::utility::String::trim(header);
+		key = esl::utility::String::trim(esl::utility::String::trim(esl::utility::String::trim(header), '\n'), '\r');
 	}
 	else {
-		key = esl::utility::String::trim(header.substr(0, seperator));
-		value = esl::utility::String::trim(header.substr(seperator + 1));
+		key = esl::utility::String::trim(esl::utility::String::trim(esl::utility::String::trim(header.substr(0, seperator)), '\n'), '\r');
+		value = esl::utility::String::trim(esl::utility::String::trim(esl::utility::String::trim(header.substr(seperator + 1)), '\n'), '\r');
 	}
 
 	if(!key.empty()) {
 		headers[key] = value;
+		std::cout << "- \"" << key << "\"=\"" << value << "\"\n";
 	}
 
 	return size*nmemb;
@@ -128,7 +157,7 @@ curl_slist* addHeader(curl_slist* hlist, const std::string& key, const std::stri
 }  // anonymer namespace
 
 
-std::unique_ptr<esl::http::client::Interface::Connection> Connection::create(const esl::utility::URL& hostUrl, const esl::object::Values<std::string>& values) {
+std::unique_ptr<esl::http::client::Interface::Connection> Connection::create(const esl::utility::URL& hostUrl, const esl::object::Values<std::string>& settings) {
 	if(hostUrl.getScheme() != esl::utility::Protocol::protocolHttp && hostUrl.getScheme() != esl::utility::Protocol::protocolHttps) {
         throw esl::addStacktrace(std::runtime_error("Unknown scheme in URL: \"" + hostUrl.getScheme().toString() + "\""));
 	}
@@ -143,11 +172,10 @@ std::unique_ptr<esl::http::client::Interface::Connection> Connection::create(con
 	if(! path.empty()) {
 		url += path + "/";
 	}
-
-	return std::unique_ptr<esl::http::client::Interface::Connection>(new Connection(url, values));
+	return std::unique_ptr<esl::http::client::Interface::Connection>(new Connection(url, settings));
 }
 
-Connection::Connection(std::string aHostUrl, const esl::object::Values<std::string>& values)
+Connection::Connection(std::string aHostUrl, const esl::object::Values<std::string>& settings)
 : esl::http::client::Interface::Connection(),
   curl(curlSingleton.easyInit()),
   hostUrl(std::move(aHostUrl))
@@ -163,8 +191,8 @@ Connection::Connection(std::string aHostUrl, const esl::object::Values<std::stri
     // (nur wen Timeout gesetzt wird ?)
     curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
 
-	if(values.hasValue("timeout")) {
-		long timeout = std::stol(values.getValue("timeout"));
+	if(settings.hasValue("timeout")) {
+		long timeout = std::stol(settings.getValue("timeout"));
 	    if(timeout) {
 	        curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout);
 	    }
@@ -177,14 +205,14 @@ Connection::Connection(std::string aHostUrl, const esl::object::Values<std::stri
 		std::string username;
 		std::string password;
 
-		if(values.hasValue("username")) {
+		if(settings.hasValue("username")) {
 			hasUsernamePassword = true;
-			username = values.getValue("username");
+			username = settings.getValue("username");
 		}
 
-		if(values.hasValue("password")) {
+		if(settings.hasValue("password")) {
 			hasUsernamePassword = true;
-			password = values.getValue("password");
+			password = settings.getValue("password");
 		}
 
 		if(hasUsernamePassword) {
@@ -194,22 +222,22 @@ Connection::Connection(std::string aHostUrl, const esl::object::Values<std::stri
 		}
 	}
 
-	if(values.hasValue("proxy")) {
-		std::string proxy = values.getValue("proxy");
+	if(settings.hasValue("proxy")) {
+		std::string proxy = settings.getValue("proxy");
     	curl_easy_setopt(curl, CURLOPT_PROXY, proxy.c_str());
 
 		bool hasUsernamePassword = false;
 		std::string proxyUser;
 		std::string proxyPassword;
 
-		if(values.hasValue("proxyUser")) {
+		if(settings.hasValue("proxyUser")) {
 			hasUsernamePassword = true;
-			proxyUser = values.getValue("proxyUser");
+			proxyUser = settings.getValue("proxyUser");
 		}
 
-		if(values.hasValue("proxyPassword")) {
+		if(settings.hasValue("proxyPassword")) {
 			hasUsernamePassword = true;
-			proxyPassword = values.getValue("proxyPassword");
+			proxyPassword = settings.getValue("proxyPassword");
 		}
 
         if(hasUsernamePassword) {
@@ -219,8 +247,8 @@ Connection::Connection(std::string aHostUrl, const esl::object::Values<std::stri
 	}
 
     /** set user agent */
-	if(values.hasValue("userAgent")) {
-		std::string userAgent = values.getValue("userAgent");
+	if(settings.hasValue("userAgent")) {
+		std::string userAgent = settings.getValue("userAgent");
 	    curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent.c_str());
 	}
 	else {
@@ -280,19 +308,20 @@ esl::http::client::Response Connection::send(const esl::http::client::RequestFil
 
 esl::http::client::Response Connection::prepareRequest(const esl::http::client::Request& request, esl::http::client::ResponseHandler* responseHandler, bool isEmpty, bool hasSize, std::size_t size) const {
 	const std::string requestUrl = hostUrl + "/" + esl::utility::String::ltrim(request.getPath(), '/');
+std::cout << "Request: '" << requestUrl << "'" << std::endl;
 	logger.debug << "Request: '" << requestUrl << "'" << std::endl;
 
 	/* ******* *
-	 * set URL *
-	 * ******* */
+	* set URL *
+	* ******* */
 
 	curl_easy_setopt(curl, CURLOPT_URL, requestUrl.c_str());
 
 
 
 	/* ******************* *
-	 * create POST-Options *
-	 * ******************* */
+	* create POST-Options *
+	* ******************* */
 
 	if(isEmpty) {
 		curl_easy_setopt(curl, CURLOPT_POST, 0L);
@@ -311,8 +340,8 @@ esl::http::client::Response Connection::prepareRequest(const esl::http::client::
 	}
 
 	/* ******************* *
-	 * create HTTP headers *
-	 * ******************* */
+	* create HTTP headers *
+	* ******************* */
 
 	/* add content-type header */
 	curl_slist* headerList = nullptr;
@@ -332,42 +361,38 @@ esl::http::client::Response Connection::prepareRequest(const esl::http::client::
 
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerList);
 
-
-
-
-    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, request.getMethod().toString().c_str());
+	curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, request.getMethod().toString().c_str());
 
 	std::map<std::string, std::string> headers;
-    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, writeHeaderCallback);
-    curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headers);
+	curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, writeHeaderCallback);
+	curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headers);
 
-    /* check if this handler accepts data. If not, then we don't need to install writeDataCallback */
-    ResponseHandler tmpResponseHandler(responseHandler);
+	/* check if this handler accepts data. If not, then we don't need to install writeDataCallback */
+	ResponseHandler tmpResponseHandler(responseHandler);
 
-    if(responseHandler) {
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, ResponseHandler::writeDataCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &tmpResponseHandler);
-    }
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeDataCallback);
+	//curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, ResponseHandler::writeDataCallback);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &tmpResponseHandler);
 
-    CURLcode res = curl_easy_perform(curl);
+	CURLcode res = curl_easy_perform(curl);
 
-    if(res != CURLE_OK) {
-        std::ostringstream strStream;
-        strStream << "Fehlercode=" << res << " (" << curl_easy_strerror(res) << ") bei curl-Anfrage";
+	if(res != CURLE_OK) {
+		std::ostringstream strStream;
+		strStream << "Fehlercode=" << res << " (" << curl_easy_strerror(res) << ") bei curl-Anfrage";
 
-    	if(headerList) {
-    	    curl_slist_free_all(headerList);
-    	}
+		if(headerList) {
+			curl_slist_free_all(headerList);
+		}
 
-        std::string str = strStream.str();
-        throw esl::addStacktrace(esl::http::client::NetworkException(str));
-    }
+		std::string str = strStream.str();
+		throw esl::addStacktrace(esl::http::client::NetworkException(str));
+	}
 
-    long httpCode = 0;
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
+	long httpCode = 0;
+	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
 
 	if(headerList) {
-	    curl_slist_free_all(headerList);
+		curl_slist_free_all(headerList);
 	}
 
 	return esl::http::client::Response(static_cast<unsigned short>(httpCode), std::move(headers));
