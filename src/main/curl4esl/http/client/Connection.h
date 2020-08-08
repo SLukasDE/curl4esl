@@ -40,6 +40,7 @@ namespace http {
 namespace client {
 
 class Connection : public esl::http::client::Interface::Connection {
+friend class Send;
 public:
 	static std::unique_ptr<esl::http::client::Interface::Connection> create(const esl::utility::URL& hostUrl, const esl::object::Values<std::string>& settings);
 
@@ -50,13 +51,13 @@ public:
 	Connection(std::string hostUrl, const esl::object::Values<std::string>& settings);
 	~Connection();
 
-	esl::http::client::Response send(esl::http::client::RequestDynamic& request, esl::http::client::ResponseHandler* responseHandler) const override;
-	esl::http::client::Response send(const esl::http::client::RequestStatic& request, esl::http::client::ResponseHandler* responseHandler) const override;
-	esl::http::client::Response send(const esl::http::client::RequestFile& request, esl::http::client::ResponseHandler* responseHandler) const override;
+	esl::http::client::Response send(esl::http::client::Request request) const override;
+
+	//CURL* getCurlPtr() const noexcept;
+	//static void setResponse(esl::http::client::Request& request, const esl::http::client::Response& response);
+	//static bool responseHandler__consumer(esl::http::client::ResponseHandler& responseHandler, const char* contentData, std::size_t contentSize);
 
 private:
-	esl::http::client::Response prepareRequest(const esl::http::client::Request& request, esl::http::client::ResponseHandler* responseHandler, bool isEmpty, bool hasSize, std::size_t size) const;
-
 	CURL* curl;
 	std::string hostUrl;
 };

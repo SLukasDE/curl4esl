@@ -21,15 +21,12 @@ SOFTWARE.
 */
 
 #include <curl4esl/http/client/Connection.h>
-#include <curl4esl/http/client/RequestHandlerStatic.h>
-#include <curl4esl/http/client/RequestHandlerDynamic.h>
-#include <curl4esl/http/client/RequestHandlerFile.h>
-#include <curl4esl/http/client/ResponseHandler.h>
+#include <curl4esl/http/client/Send.h>
 #include <curl4esl/Logger.h>
 
-#include <esl/http/client/RequestStatic.h>
-#include <esl/http/client/RequestDynamic.h>
-#include <esl/http/client/RequestFile.h>
+#include <esl/http/client/RequestHandlerStatic.h>
+#include <esl/http/client/RequestHandlerDynamic.h>
+#include <esl/http/client/RequestHandlerFile.h>
 #include <esl/http/client/Response.h>
 #include <esl/http/client/NetworkException.h>
 #include <esl/utility/String.h>
@@ -40,7 +37,6 @@ SOFTWARE.
 #include <sstream>
 #include <fstream>
 
-#include <iostream>
 namespace curl4esl {
 namespace http {
 namespace client {
@@ -78,82 +74,6 @@ std::string createAuthenticationStr(const std::string& username, const std::stri
     }
     return username;
 }
-
-enum LastCallback {
-	lcNone,
-	lcData,
-	lcHeader
-};
-LastCallback lastCallback = lcNone;
-size_t writeDataCallback(void* data, size_t size, size_t nmemb, void* responseHandlerPtr) {
-	if(lastCallback == lcNone) {
-		std::cout << "### writeDataCallback (first)\n";
-	}
-	else if(lastCallback == lcHeader) {
-		std::cout << "### writeDataCallback\n";
-	}
-	else {
-//		std::cout << "writeDataCallback\n";
-	}
-	lastCallback = lcData;
-	return ResponseHandler::writeDataCallback(data, size, nmemb, responseHandlerPtr);
-}
-
-/**
-* @brief header callback for libcurl
-*
-* @param data returned (header line)
-* @param size of data
-* @param nmemb memblock
-* @param headersPtr pointer to user data object to save headr data
-* @return size * nmemb;
-*/
-size_t writeHeaderCallback(void* data, size_t size, size_t nmemb, void* headersPtr) {
-	if(lastCallback == lcNone) {
-		std::cout << "writeHeaderCallback (first)\n";
-	}
-	else if(lastCallback == lcData) {
-		std::cout << "writeHeaderCallback\n";
-	}
-	lastCallback = lcHeader;
-
-	std::map<std::string, std::string>& headers = *reinterpret_cast<std::map<std::string, std::string>*>(headersPtr);
-
-	std::string header(reinterpret_cast<char*>(data), size*nmemb);
-	std::size_t seperator = header.find_first_of(":");
-
-	std::string key;
-	std::string value;
-
-	if(seperator == std::string::npos) {
-		key = esl::utility::String::trim(esl::utility::String::trim(esl::utility::String::trim(header), '\n'), '\r');
-	}
-	else {
-		key = esl::utility::String::trim(esl::utility::String::trim(esl::utility::String::trim(header.substr(0, seperator)), '\n'), '\r');
-		value = esl::utility::String::trim(esl::utility::String::trim(esl::utility::String::trim(header.substr(seperator + 1)), '\n'), '\r');
-	}
-
-	if(!key.empty()) {
-		headers[key] = value;
-		std::cout << "- \"" << key << "\"=\"" << value << "\"\n";
-	}
-
-	return size*nmemb;
-}
-
-curl_slist* addHeader(curl_slist* hlist, const std::string& key, const std::string& value) {
-	std::string header;
-
-	if(value.empty()) {
-		header = key + ";";
-	}
-	else {
-		header = key + ": " + value;
-	}
-
-    return curl_slist_append(hlist, header.c_str());
-}
-
 }  // anonymer namespace
 
 
@@ -198,28 +118,38 @@ Connection::Connection(std::string aHostUrl, const esl::object::Values<std::stri
 	    }
 	}
 
+	if(settings.hasValue("lowSpeedLimit") || settings.hasValue("lowSpeedTime")) {
+		if(!settings.hasValue("lowSpeedLimit")) {
+            throw esl::addStacktrace(std::runtime_error("curl4esl: 'lowSpeedTime' specified but 'lowSpeedLimit' is missing."));
+		}
+
+		if(!settings.hasValue("lowSpeedTime")) {
+            throw esl::addStacktrace(std::runtime_error("curl4esl: 'lowSpeedLimit' specified but 'lowSpeedTime' is missing."));
+		}
+
+		long lowSpeedLimit = std::stol(settings.getValue("lowSpeedLimit"));
+		long lowSpeedTime = std::stol(settings.getValue("lowSpeedTime"));
+
+        curl_easy_setopt(curl, CURLOPT_LOW_SPEED_LIMIT, lowSpeedLimit);
+        curl_easy_setopt(curl, CURLOPT_LOW_SPEED_TIME, lowSpeedTime);
+	}
 
     /** set basic authentication if present*/
-	{
-		bool hasUsernamePassword = false;
+	if(settings.hasValue("username") || settings.hasValue("password")) {
 		std::string username;
 		std::string password;
 
 		if(settings.hasValue("username")) {
-			hasUsernamePassword = true;
 			username = settings.getValue("username");
 		}
 
 		if(settings.hasValue("password")) {
-			hasUsernamePassword = true;
 			password = settings.getValue("password");
 		}
 
-		if(hasUsernamePassword) {
-			std::string basicAuthentication = createAuthenticationStr(username, password);
-	        curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-	        curl_easy_setopt(curl, CURLOPT_USERPWD, basicAuthentication.c_str());
-		}
+		std::string basicAuthentication = createAuthenticationStr(username, password);
+        curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+        curl_easy_setopt(curl, CURLOPT_USERPWD, basicAuthentication.c_str());
 	}
 
 	if(settings.hasValue("proxy")) {
@@ -260,143 +190,21 @@ Connection::~Connection() {
     curl_easy_cleanup(curl);
 }
 
-esl::http::client::Response Connection::send(esl::http::client::RequestDynamic& request, esl::http::client::ResponseHandler* responseHandler) const {
-	bool isEmpty = request.isEmpty();
-	bool hasSize = isEmpty ? false : request.hasSize();
-	std::size_t size = hasSize ? 0 : request.getSize();
-
-	if(isEmpty == false) {
-		RequestHandlerDynamic requestHandlerDynamic(request);
-
-		/** set read callback function */
-		curl_easy_setopt(curl, CURLOPT_READFUNCTION, RequestHandlerDynamic::readDataCallback);
-
-		/** set data object to pass to callback function */
-		curl_easy_setopt(curl, CURLOPT_READDATA, &requestHandlerDynamic);
-	}
-
-	return prepareRequest(request, responseHandler, isEmpty, hasSize, size);
-}
-
-esl::http::client::Response Connection::send(const esl::http::client::RequestStatic& request, esl::http::client::ResponseHandler* responseHandler) const {
-	if(request.getSize() > 0) {
-		RequestHandlerStatic requestHandlerStatic(request);
-
-		/** set read callback function */
-		curl_easy_setopt(curl, CURLOPT_READFUNCTION, RequestHandlerStatic::readDataCallback);
-
-		/** set data object to pass to callback function */
-		curl_easy_setopt(curl, CURLOPT_READDATA, &requestHandlerStatic);
-	}
-
-	return prepareRequest(request, responseHandler, request.getSize() == 0, true, request.getSize());
-}
-
-esl::http::client::Response Connection::send(const esl::http::client::RequestFile& request, esl::http::client::ResponseHandler* responseHandler) const {
-	RequestHandlerFile requestHandlerFile(request);
-
-	if(requestHandlerFile.getSize() > 0) {
-		/** set read callback function */
-		curl_easy_setopt(curl, CURLOPT_READFUNCTION, RequestHandlerFile::readDataCallback);
-
-		/** set data object to pass to callback function */
-		curl_easy_setopt(curl, CURLOPT_READDATA, &requestHandlerFile);
-	}
-
-	return prepareRequest(request, responseHandler, requestHandlerFile.getSize() == 0, true, requestHandlerFile.getSize());
-}
-
-esl::http::client::Response Connection::prepareRequest(const esl::http::client::Request& request, esl::http::client::ResponseHandler* responseHandler, bool isEmpty, bool hasSize, std::size_t size) const {
-	const std::string requestUrl = hostUrl + "/" + esl::utility::String::ltrim(request.getPath(), '/');
-std::cout << "Request: '" << requestUrl << "'" << std::endl;
+esl::http::client::Response Connection::send(esl::http::client::Request request) const {
+	std::string requestUrl = hostUrl + "/" + esl::utility::String::ltrim(request.getPath(), '/');
 	logger.debug << "Request: '" << requestUrl << "'" << std::endl;
 
-	/* ******* *
-	* set URL *
-	* ******* */
-
-	curl_easy_setopt(curl, CURLOPT_URL, requestUrl.c_str());
-
-
-
-	/* ******************* *
-	* create POST-Options *
-	* ******************* */
-
-	if(isEmpty) {
-		curl_easy_setopt(curl, CURLOPT_POST, 0L);
-		/** set data size */
-		//curl_easy_setopt(curl, CURLOPT_INFILESIZE, 0L);
-	}
-	else {
-		curl_easy_setopt(curl, CURLOPT_POST, 1);
-
-		if(hasSize) {
-			long dataSize = static_cast<long>(size);
-			curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, dataSize);
-			/** set data size */
-			//curl_easy_setopt(curl, CURLOPT_INFILESIZE, dataSize);
-		}
-	}
-
-	/* ******************* *
-	* create HTTP headers *
-	* ******************* */
-
-	/* add content-type header */
-	curl_slist* headerList = nullptr;
-
-	if(isEmpty == false) {
-		headerList = addHeader(headerList, "Content-Type", request.getContentType().toString());
-
-		if(hasSize == false) {
-			headerList = addHeader(headerList, "Transfer-Encoding", "chunked");
-		}
-	}
-
-	/* add other headers */
-	for(const auto& v : request.getHeaders()) {
-		headerList = addHeader(headerList, v.first, v.second);
-	}
-
-	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerList);
-
-	curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, request.getMethod().toString().c_str());
-
-	std::map<std::string, std::string> headers;
-	curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, writeHeaderCallback);
-	curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headers);
-
-	/* check if this handler accepts data. If not, then we don't need to install writeDataCallback */
-	ResponseHandler tmpResponseHandler(responseHandler);
-
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeDataCallback);
-	//curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, ResponseHandler::writeDataCallback);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &tmpResponseHandler);
-
-	CURLcode res = curl_easy_perform(curl);
-
-	if(res != CURLE_OK) {
-		std::ostringstream strStream;
-		strStream << "Fehlercode=" << res << " (" << curl_easy_strerror(res) << ") bei curl-Anfrage";
-
-		if(headerList) {
-			curl_slist_free_all(headerList);
-		}
-
-		std::string str = strStream.str();
-		throw esl::addStacktrace(esl::http::client::NetworkException(str));
-	}
-
-	long httpCode = 0;
-	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
-
-	if(headerList) {
-		curl_slist_free_all(headerList);
-	}
-
-	return esl::http::client::Response(static_cast<unsigned short>(httpCode), std::move(headers));
+	Send send(curl, std::move(request), std::move(requestUrl));
+	return send.send();
 }
+/*
+CURL* Connection::getCurlPtr() const noexcept {
+	return curl;
+}
+bool Connection::responseHandler__consumer(esl::http::client::ResponseHandler& responseHandler, const char* contentData, std::size_t contentSize) {
+	return responseHandler.consumer(contentData, contentSize);
+}
+*/
 
 } /* namespace client */
 } /* namespace http */
