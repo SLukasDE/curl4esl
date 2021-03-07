@@ -90,7 +90,7 @@ std::unique_ptr<esl::http::client::Interface::Connection> Connection::create(con
 
 	std::string path = esl::utility::String::trim(hostUrl.getPath(), '/');
 	if(! path.empty()) {
-		url += path + "/";
+		url += path;
 	}
 	return std::unique_ptr<esl::http::client::Interface::Connection>(new Connection(url, settings));
 }
