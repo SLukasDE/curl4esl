@@ -21,14 +21,11 @@ SOFTWARE.
 */
 
 #include <curl4esl/http/client/Connection.h>
+#include <curl4esl/http/client/PreparedRequestBinding.h>
 #include <curl4esl/http/client/Send.h>
 #include <curl4esl/Logger.h>
 
-#include <esl/http/client/RequestHandlerStatic.h>
-#include <esl/http/client/RequestHandlerDynamic.h>
-#include <esl/http/client/RequestHandlerFile.h>
 #include <esl/http/client/Response.h>
-#include <esl/http/client/NetworkException.h>
 #include <esl/utility/String.h>
 #include <esl/Stacktrace.h>
 #include <esl/logging/Logger.h>
@@ -36,6 +33,7 @@ SOFTWARE.
 #include <cstdio>
 #include <sstream>
 #include <fstream>
+#include <memory>
 
 namespace curl4esl {
 namespace http {
@@ -44,10 +42,6 @@ namespace client {
 namespace {
 
 Logger logger("curl4esl::http::client::Connection");
-
-enum {
-    httpOk = 200
-};
 
 struct CurlSingleton {
 	CurlSingleton() {
@@ -81,7 +75,7 @@ std::unique_ptr<esl::http::client::Interface::Connection> Connection::create(con
 	if(hostUrl.getScheme() != esl::utility::Protocol::protocolHttp && hostUrl.getScheme() != esl::utility::Protocol::protocolHttps) {
         throw esl::addStacktrace(std::runtime_error("Unknown scheme in URL: \"" + hostUrl.getScheme().toString() + "\""));
 	}
-
+/*
 	std::string url = hostUrl.getScheme().toString() + "://" + hostUrl.getHostname();
 
 	if(! hostUrl.getPort().empty()) {
@@ -92,13 +86,15 @@ std::unique_ptr<esl::http::client::Interface::Connection> Connection::create(con
 	if(! path.empty()) {
 		url += path;
 	}
-	return std::unique_ptr<esl::http::client::Interface::Connection>(new Connection(url, settings));
+	*/
+
+	return std::unique_ptr<esl::http::client::Interface::Connection>(new Connection(hostUrl.toString(), settings));
 }
 
 Connection::Connection(std::string aHostUrl, const esl::object::Values<std::string>& settings)
 : esl::http::client::Interface::Connection(),
   curl(curlSingleton.easyInit()),
-  hostUrl(std::move(aHostUrl))
+  hostUrl(esl::utility::String::rtrim(aHostUrl, '/'))
 {
     curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
     curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);
@@ -190,21 +186,26 @@ Connection::~Connection() {
     curl_easy_cleanup(curl);
 }
 
-esl::http::client::Response Connection::send(esl::http::client::Request request) const {
-	std::string requestUrl = hostUrl + "/" + esl::utility::String::ltrim(request.getPath(), '/');
-	logger.debug << "Request: '" << requestUrl << "'" << std::endl;
+esl::http::client::PreparedRequest Connection::prepare(esl::http::client::Request&& request) const {
+	std::string requestUrl = hostUrl;
+	if(request.getPath().empty() == false && request.getPath().at(0) != '/') {
+		requestUrl += "/";
+	}
+	requestUrl += request.getPath();
 
-	Send send(curl, std::move(request), std::move(requestUrl));
-	return send.send();
+	return esl::http::client::PreparedRequest(std::unique_ptr<esl::http::client::PreparedRequest::Binding>(new PreparedRequestBinding(std::move(request), curl, std::move(requestUrl))));
 }
-/*
-CURL* Connection::getCurlPtr() const noexcept {
-	return curl;
+
+esl::http::client::PreparedRequest Connection::prepare(const esl::http::client::Request& request) const {
+//	std::string requestUrl = hostUrl + "/" + esl::utility::String::ltrim(request.getPath(), '/');
+	std::string requestUrl = hostUrl;
+	if(request.getPath().empty() == false && request.getPath().at(0) != '/') {
+		requestUrl += "/";
+	}
+	requestUrl += request.getPath();
+
+	return esl::http::client::PreparedRequest(std::unique_ptr<esl::http::client::PreparedRequest::Binding>(new PreparedRequestBinding(request, curl, std::move(requestUrl))));
 }
-bool Connection::responseHandler__consumer(esl::http::client::ResponseHandler& responseHandler, const char* contentData, std::size_t contentSize) {
-	return responseHandler.consumer(contentData, contentSize);
-}
-*/
 
 } /* namespace client */
 } /* namespace http */

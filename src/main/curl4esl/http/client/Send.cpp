@@ -24,59 +24,60 @@ SOFTWARE.
 #include <curl4esl/http/client/Connection.h>
 #include <curl4esl/Logger.h>
 
-#include <esl/http/client/NetworkException.h>
+#include <esl/http/client/exception/NetworkError.h>
+#include <esl/io/ReaderStatic.h>
 #include <esl/utility/String.h>
 #include <esl/Stacktrace.h>
 
 #include <sstream>
+#include <cstring>
 
 namespace curl4esl {
 namespace http {
 namespace client {
+
 namespace {
 Logger logger("curl4esl::http::client::Send");
 }  // anonymer namespace
 
-Send::Send(CURL* aCurl, esl::http::client::Request aRequest, std::string aRequestUrl)
+Send::Send(CURL* aCurl, const esl::http::client::Request& aRequest, const std::string& aRequestUrl, esl::io::Output& aOutput, esl::http::client::io::Input& aInput)
 : curl(aCurl),
-  request(std::move(aRequest)),
-  requestUrl(std::move(aRequestUrl)),
-  responseHandler(request.getResponseHandler())
+  request(aRequest),
+  requestUrl(aRequestUrl),
+  output(aOutput),
+  input(aInput)
 {
-	esl::http::client::RequestHandler* requestHandler = request.getRequestHandler();
-
-	if(requestHandler && requestHandler->isEmpty() == false) {
-
-		/** set read callback function */
-		curl_easy_setopt(curl, CURLOPT_READFUNCTION, readDataCallback);
-
-		/** set data object to pass to callback function */
-		curl_easy_setopt(curl, CURLOPT_READDATA, this);
-	}
-
 	/* ******* *
 	* set URL *
 	* ******* */
 
 	curl_easy_setopt(curl, CURLOPT_URL, requestUrl.c_str());
 
-
-
 	/* ******************* *
 	* create POST-Options *
 	* ******************* */
 
-	if(requestHandler) {
+	if(output) {
+		/** set read callback function */
+		curl_easy_setopt(curl, CURLOPT_READFUNCTION, readDataCallback);
+
+		/** set data object to pass to callback function */
+		curl_easy_setopt(curl, CURLOPT_READDATA, this);
+
 		curl_easy_setopt(curl, CURLOPT_POST, 1);
 
-		if(requestHandler->hasSize()) {
-			long dataSize = static_cast<long>(requestHandler->getSize());
+		if(output.getReader().hasSize()) {
+			long dataSize = static_cast<long>(output.getReader().getSize());
 			curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, dataSize);
 			/** set data size */
 			//curl_easy_setopt(curl, CURLOPT_INFILESIZE, dataSize);
 		}
+		else {
+			addRequestHeader("Transfer-Encoding", "chunked");
+		}
 	}
 	else {
+		// No data to send
 		curl_easy_setopt(curl, CURLOPT_POST, 0L);
 		/** set data size */
 		//curl_easy_setopt(curl, CURLOPT_INFILESIZE, 0L);
@@ -87,14 +88,7 @@ Send::Send(CURL* aCurl, esl::http::client::Request aRequest, std::string aReques
 	 * ******************* */
 
 	/* add content-type header */
-
-	if(requestHandler) {
-		addRequestHeader("Content-Type", requestHandler->getContentType().toString());
-
-		if(requestHandler->hasSize() == false) {
-			addRequestHeader("Transfer-Encoding", "chunked");
-		}
-	}
+	addRequestHeader("Content-Type", request.getContentType().toString());
 
 	/* add other headers */
 	for(const auto& v : request.getHeaders()) {
@@ -120,12 +114,12 @@ Send::~Send() {
 	}
 }
 
-esl::http::client::Response Send::send() {
-	CURLcode res = curl_easy_perform(curl);
+esl::http::client::Response Send::execute() {
+	CURLcode rc = curl_easy_perform(curl);
 
-	if(res != CURLE_OK) {
+	if(rc != CURLE_OK) {
 		std::ostringstream strStream;
-		strStream << "Fehlercode=" << res << " (" << curl_easy_strerror(res) << ") bei curl-Anfrage";
+		strStream << "Fehlercode=" << rc << " (" << curl_easy_strerror(rc) << ") bei curl-Anfrage";
 
 		if(requestHeaders) {
 			curl_slist_free_all(requestHeaders);
@@ -133,16 +127,12 @@ esl::http::client::Response Send::send() {
 		}
 
 		std::string str = strStream.str();
-		throw esl::addStacktrace(esl::http::client::NetworkException(str));
+		throw esl::addStacktrace(esl::http::client::exception::NetworkError(static_cast<int>(rc), str));
 	}
 
 	if(requestHeaders) {
 		curl_slist_free_all(requestHeaders);
 		requestHeaders = nullptr;
-	}
-
-	if(responseHandler) {
-		Connection::responseHandler__consumer(*responseHandler, nullptr, 0);
 	}
 
 	return getResponse();
@@ -162,17 +152,58 @@ void Send::addRequestHeader(const std::string& key, const std::string& value) {
 }
 
 size_t Send::readDataCallback(void* data, size_t size, size_t nmemb, void* sendPtr) {
-	/* get upload data */
+	size_t rv = 0;
 	Send& send = *reinterpret_cast<Send*>(sendPtr);
-	return send.readData(static_cast<char*>(data), size * nmemb);
+	try {
+		/* get upload data */
+		rv = send.readData(data, size * nmemb);
+	}
+	catch(const std::runtime_error& e) {
+		logger.warn << "std::runtime_error" << "\n";
+		logger.warn << "what() = " << e.what() << "\n";
+
+		const esl::Stacktrace* stacktrace = esl::getStacktrace(e);
+		if(stacktrace) {
+			logger.warn << "Stacktrace:\n";
+			stacktrace->dump(logger.warn);
+		}
+
+		return 0;
+	}
+	catch(const std::exception& e) {
+		logger.warn << "std::exception" << "\n";
+		logger.warn << "what() = " << e.what() << "\n";
+
+		const esl::Stacktrace* stacktrace = esl::getStacktrace(e);
+		if(stacktrace) {
+			logger.warn << "Stacktrace:\n";
+			stacktrace->dump(logger.warn);
+		}
+
+		return 0;
+	}
+	catch(...) {
+		logger.warn << "(exception)\n";
+		return 0;
+	}
+
+	return rv;
 }
 
-std::size_t Send::readData(char* data, std::size_t size) {
-	/* get upload data */
-	if(request.getRequestHandler()) {
-		return request.getRequestHandler()->producer(data, size);
+std::size_t Send::readData(void* data, std::size_t size) {
+	/* Signal libcurl to abort transmitting if there is no output available */
+	if(!output) {
+		return 0;
 	}
-	return 0;
+
+	/* send upload data */
+	std::size_t rv = output.getReader().read(data, size);
+	if(rv == esl::io::Reader::npos) {
+		output = esl::io::Output();
+		return 0;
+	}
+
+	return rv;
 }
 
 size_t Send::writeHeaderCallback(void* data, size_t size, size_t nmemb, void* sendPtr) {
@@ -203,27 +234,126 @@ std::size_t Send::writeHeader(const char* data, std::size_t size) {
 }
 
 size_t Send::writeDataCallback(void* data, size_t size, size_t nmemb, void* sendPtr) {
+	size_t rv = 0;
 	Send& send = *reinterpret_cast<Send*>(sendPtr);
-	return send.writeData(static_cast<char*>(data), size * nmemb);
-}
+	try {
+		rv = send.writeData(static_cast<std::uint8_t*>(data), size * nmemb);
+	}
+	catch(const std::runtime_error& e) {
+		logger.warn << "std::runtime_error" << "\n";
+		logger.warn << "what() = " << e.what() << "\n";
 
-std::size_t Send::writeData(const char* data, std::size_t size) {
-	if(!response) {
-		// switch to receive content
-		Connection::request__setResponse(request, getResponse());
+		const esl::Stacktrace* stacktrace = esl::getStacktrace(e);
+		if(stacktrace) {
+			logger.warn << "Stacktrace:\n";
+			stacktrace->dump(logger.warn);
+		}
+
+		return 0;
+	}
+	catch(const std::exception& e) {
+		logger.warn << "std::exception" << "\n";
+		logger.warn << "what() = " << e.what() << "\n";
+
+		const esl::Stacktrace* stacktrace = esl::getStacktrace(e);
+		if(stacktrace) {
+			logger.warn << "Stacktrace:\n";
+			stacktrace->dump(logger.warn);
+		}
+
+		return 0;
+	}
+	catch(...) {
+		logger.warn << "(exception)\n";
+		return 0;
 	}
 
-	if(responseHandler) {
-		bool callAgain = Connection::responseHandler__consumer(*responseHandler, data, size);
-		if(callAgain == false) {
-			responseHandler = nullptr;
+	return rv;
+}
+
+std::size_t Send::writeData(const std::uint8_t* data, const std::size_t size) {
+	/* Signal libcurl to abort receiving if there is no input available */
+	if(!input) {
+		return 0;
+	}
+
+	/* ************************************ *
+	 * flush buffer if something has queued *
+	 * ************************************ */
+	while(receiveBuffer.empty() == false) {
+		Chunk& chunk = receiveBuffer.front();
+
+		std::size_t sizeRemaining = chunk.size() - currentPos;
+		std::size_t sizeWritten = input.getWriter().write(&chunk[currentPos], sizeRemaining, request, getResponse());
+
+		if(sizeWritten == esl::io::Writer::npos) {
+			input = esl::http::client::io::Input();
+			receiveBuffer.clear();
+			return 0;
 		}
+
+		/* check if writer is stalled */
+		if(sizeWritten == 0) {
+			if(size > 0) {
+				/* put new data into queue */
+				receiveBuffer.push_back(Chunk(size));
+				Chunk& chunk = receiveBuffer.back();
+				std::memcpy(&chunk[0], data, size);
+			}
+			return size;
+		}
+
+		currentPos += sizeWritten;
+		if(currentPos == chunk.size()) {
+			currentPos = 0;
+			receiveBuffer.pop_front();
+		}
+	}
+
+	/* ************************************************ *
+	 * Signal writer that no more data will be received *
+	 * ************************************************ */
+	if(size == 0) {
+		input.getWriter().write(data, 0, request, getResponse());
+		input = esl::io::Input();
+		receiveBuffer.clear();
+		return 0;
+	}
+
+	/* ********************* *
+	 * Writer data to writer *
+	 * ********************* */
+	currentPos = 0;
+	while(currentPos < size) {
+		std::size_t sizeRemaining = size - currentPos;
+		std::size_t sizeWritten = input.getWriter().write(&data[currentPos], sizeRemaining, request, getResponse());
+
+		if(sizeWritten == esl::io::Writer::npos) {
+			input = esl::http::client::io::Input();
+			receiveBuffer.clear();
+			return 0;
+		}
+
+		if(sizeWritten == 0) {
+			break;
+		}
+
+		currentPos += sizeWritten;
+	}
+
+	/* put unwritten  data into queue */
+	if(currentPos < size) {
+		std::size_t sizeRemaining = size - currentPos;
+		receiveBuffer.push_back(Chunk(sizeRemaining));
+		Chunk& chunk = receiveBuffer.back();
+		std::memcpy(&chunk[0], &data[currentPos], sizeRemaining);
+		currentPos = 0;
 	}
 
 	return size;
 }
 
-esl::http::client::Response& Send::getResponse() {
+const esl::http::client::Response& Send::getResponse() {
 	if(!response) {
 		long httpCode = 0;
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);

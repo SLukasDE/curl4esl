@@ -24,16 +24,19 @@ SOFTWARE.
 #define CURL4ESL_HTTP_CLIENT_SEND_H_
 
 #include <esl/http/client/Request.h>
-#include <esl/http/client/RequestHandler.h>
 #include <esl/http/client/Response.h>
-#include <esl/http/client/ResponseHandler.h>
+#include <esl/http/client/io/Input.h>
+#include <esl/io/Output.h>
 
 #include <curl/curl.h>
 
 #include <cstddef>
 #include <string>
+#include <vector>
+#include <list>
 #include <map>
 #include <memory>
+#include <cstdint>
 
 namespace curl4esl {
 namespace http {
@@ -41,16 +44,18 @@ namespace client {
 
 class Send {
 public:
-	Send(CURL* curl, esl::http::client::Request request, std::string requestUrl);
+	Send(CURL* curl, const esl::http::client::Request& request, const std::string& requestUrl, esl::io::Output& output, esl::http::client::io::Input& input);
 	~Send();
 
-	esl::http::client::Response send();
+	esl::http::client::Response execute();
 
 private:
+	Send(CURL* curl, esl::http::client::Request request, std::string requestUrl, esl::io::Reader* reader);
+
 	void addRequestHeader(const std::string& key, const std::string& value);
 
 	static size_t readDataCallback(void* data, size_t size, size_t nmemb, void* sendPtr);
-	std::size_t readData(char* data, std::size_t size);
+	std::size_t readData(void* data, std::size_t size);
 
 	/**
 	* @brief header callback for libcurl
@@ -75,25 +80,27 @@ private:
 	* @return (size * nmemb)
 	*/
 	static size_t writeDataCallback(void* data, size_t size, size_t nmemb, void* sendPtr);
-	std::size_t writeData(const char* data, std::size_t size);
+	std::size_t writeData(const std::uint8_t* data, const std::size_t size);
 
-	esl::http::client::Response& getResponse();
+	const esl::http::client::Response& getResponse();
 
 	CURL* curl;
 
-	esl::http::client::Request request;
-	const std::string requestUrl;
+	const esl::http::client::Request& request;
+	const std::string& requestUrl;
 	curl_slist* requestHeaders = nullptr;
 
 	std::unique_ptr<esl::http::client::Response> response;
 	std::map<std::string, std::string> responseHeaders;
 	unsigned short responseStatusCode = 0;
 
-	/* Initialized with requst.getResponseHandler().
-	 * Don't use requst.getResponseHandler() anymore after initialization.
-	 * Use 'responseHandler' instead and set 'responseHandler' to nullptr if resounseHandler->consume(...) return false.
-	 */
-	esl::http::client::ResponseHandler* responseHandler;
+	esl::io::Output& output;
+	esl::http::client::io::Input& input;
+
+	using Chunk = std::vector<std::uint8_t>;
+	std::size_t currentPos = 0;
+
+	std::list<Chunk> receiveBuffer;
 };
 
 } /* namespace client */

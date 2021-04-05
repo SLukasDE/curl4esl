@@ -31,7 +31,8 @@ namespace curl4esl {
 #ifdef CURL4ESL_LOGGING_LEVEL_DEBUG
 using Logger = esl::logging::Logger<esl::logging::Level::TRACE>;
 #else
-using Logger = esl::logging::Logger<esl::logging::Level::ERROR>;
+using Logger = esl::logging::Logger<esl::logging::Level::TRACE>;
+//using Logger = esl::logging::Logger<esl::logging::Level::ERROR>;
 #endif
 
 } /* namespace curl4esl */

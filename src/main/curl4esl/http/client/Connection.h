@@ -25,15 +25,13 @@ SOFTWARE.
 
 #include <esl/http/client/Interface.h>
 #include <esl/http/client/Request.h>
-#include <esl/http/client/Response.h>
-#include <esl/http/client/ResponseHandler.h>
-#include <esl/object/Values.h>
+#include <esl/http/client/PreparedRequest.h>
 #include <esl/utility/URL.h>
+#include <esl/object/Values.h>
 
 #include <curl/curl.h>
 
 #include <string>
-#include <memory>
 
 namespace curl4esl {
 namespace http {
@@ -51,11 +49,8 @@ public:
 	Connection(std::string hostUrl, const esl::object::Values<std::string>& settings);
 	~Connection();
 
-	esl::http::client::Response send(esl::http::client::Request request) const override;
-
-	//CURL* getCurlPtr() const noexcept;
-	//static void setResponse(esl::http::client::Request& request, const esl::http::client::Response& response);
-	//static bool responseHandler__consumer(esl::http::client::ResponseHandler& responseHandler, const char* contentData, std::size_t contentSize);
+	esl::http::client::PreparedRequest prepare(esl::http::client::Request&& request) const override;
+	esl::http::client::PreparedRequest prepare(const esl::http::client::Request& request) const override;
 
 private:
 	CURL* curl;
