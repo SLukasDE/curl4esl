@@ -23,9 +23,9 @@ SOFTWARE.
 #ifndef CURL4ESL_HTTP_CLIENT_SEND_H_
 #define CURL4ESL_HTTP_CLIENT_SEND_H_
 
+#include <esl/http/client/Interface.h>
 #include <esl/http/client/Request.h>
 #include <esl/http/client/Response.h>
-#include <esl/http/client/io/Input.h>
 #include <esl/io/Output.h>
 
 #include <curl/curl.h>
@@ -44,13 +44,14 @@ namespace client {
 
 class Send {
 public:
-	Send(CURL* curl, const esl::http::client::Request& request, const std::string& requestUrl, esl::io::Output& output, esl::http::client::io::Input& input);
+	Send(CURL* curl, const esl::http::client::Request& request, const std::string& requestUrl, esl::io::Output& output, esl::http::client::Interface::CreateInput createInput);
+	Send(CURL* curl, const esl::http::client::Request& request, const std::string& requestUrl, esl::io::Output& output, esl::io::Input input);
 	~Send();
 
 	esl::http::client::Response execute();
 
 private:
-	Send(CURL* curl, esl::http::client::Request request, std::string requestUrl, esl::io::Reader* reader);
+	Send(CURL* curl, const esl::http::client::Request& request, const std::string& requestUrl, esl::io::Output& output, esl::io::Input input, esl::http::client::Interface::CreateInput createInput);
 
 	void addRequestHeader(const std::string& key, const std::string& value);
 
@@ -90,12 +91,14 @@ private:
 	const std::string& requestUrl;
 	curl_slist* requestHeaders = nullptr;
 
+	bool firstWriteData = true;
+	esl::io::Input input;
+	esl::http::client::Interface::CreateInput createInput;
+	esl::io::Output& output;
+
 	std::unique_ptr<esl::http::client::Response> response;
 	std::map<std::string, std::string> responseHeaders;
 	unsigned short responseStatusCode = 0;
-
-	esl::io::Output& output;
-	esl::http::client::io::Input& input;
 
 	using Chunk = std::vector<std::uint8_t>;
 	std::size_t currentPos = 0;

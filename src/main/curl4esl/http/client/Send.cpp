@@ -25,7 +25,6 @@ SOFTWARE.
 #include <curl4esl/Logger.h>
 
 #include <esl/http/client/exception/NetworkError.h>
-#include <esl/io/ReaderStatic.h>
 #include <esl/utility/String.h>
 #include <esl/Stacktrace.h>
 
@@ -40,12 +39,22 @@ namespace {
 Logger logger("curl4esl::http::client::Send");
 }  // anonymer namespace
 
-Send::Send(CURL* aCurl, const esl::http::client::Request& aRequest, const std::string& aRequestUrl, esl::io::Output& aOutput, esl::http::client::io::Input& aInput)
+Send::Send(CURL* curl, const esl::http::client::Request& request, const std::string& requestUrl, esl::io::Output& output, esl::http::client::Interface::CreateInput createInput)
+: Send(curl, request, requestUrl, output, esl::io::Input(), createInput)
+{ }
+
+Send::Send(CURL* curl, const esl::http::client::Request& request, const std::string& requestUrl, esl::io::Output& output, esl::io::Input input)
+: Send(curl, request, requestUrl, output, std::move(input), nullptr)
+{ }
+
+Send::Send(CURL* aCurl, const esl::http::client::Request& aRequest, const std::string& aRequestUrl, esl::io::Output& aOutput, esl::io::Input aInput, esl::http::client::Interface::CreateInput aCreateInput)
 : curl(aCurl),
   request(aRequest),
   requestUrl(aRequestUrl),
-  output(aOutput),
-  input(aInput)
+  firstWriteData(aCreateInput),
+  input(std::move(aInput)),
+  createInput(aCreateInput),
+  output(aOutput)
 {
 	/* ******* *
 	* set URL *
@@ -272,6 +281,11 @@ size_t Send::writeDataCallback(void* data, size_t size, size_t nmemb, void* send
 }
 
 std::size_t Send::writeData(const std::uint8_t* data, const std::size_t size) {
+	if(firstWriteData) {
+		firstWriteData = false;
+		input = createInput(getResponse());
+	}
+
 	/* Signal libcurl to abort receiving if there is no input available */
 	if(!input) {
 		return 0;
@@ -284,10 +298,10 @@ std::size_t Send::writeData(const std::uint8_t* data, const std::size_t size) {
 		Chunk& chunk = receiveBuffer.front();
 
 		std::size_t sizeRemaining = chunk.size() - currentPos;
-		std::size_t sizeWritten = input.getWriter().write(&chunk[currentPos], sizeRemaining, request, getResponse());
+		std::size_t sizeWritten = input.getWriter().write(&chunk[currentPos], sizeRemaining);
 
 		if(sizeWritten == esl::io::Writer::npos) {
-			input = esl::http::client::io::Input();
+			input = esl::io::Input();
 			receiveBuffer.clear();
 			return 0;
 		}
@@ -314,7 +328,7 @@ std::size_t Send::writeData(const std::uint8_t* data, const std::size_t size) {
 	 * Signal writer that no more data will be received *
 	 * ************************************************ */
 	if(size == 0) {
-		input.getWriter().write(data, 0, request, getResponse());
+		input.getWriter().write(data, 0);
 		input = esl::io::Input();
 		receiveBuffer.clear();
 		return 0;
@@ -326,10 +340,10 @@ std::size_t Send::writeData(const std::uint8_t* data, const std::size_t size) {
 	currentPos = 0;
 	while(currentPos < size) {
 		std::size_t sizeRemaining = size - currentPos;
-		std::size_t sizeWritten = input.getWriter().write(&data[currentPos], sizeRemaining, request, getResponse());
+		std::size_t sizeWritten = input.getWriter().write(&data[currentPos], sizeRemaining);
 
 		if(sizeWritten == esl::io::Writer::npos) {
-			input = esl::http::client::io::Input();
+			input = esl::io::Input();
 			receiveBuffer.clear();
 			return 0;
 		}

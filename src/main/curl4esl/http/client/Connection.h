@@ -25,7 +25,6 @@ SOFTWARE.
 
 #include <esl/http/client/Interface.h>
 #include <esl/http/client/Request.h>
-#include <esl/http/client/PreparedRequest.h>
 #include <esl/utility/URL.h>
 #include <esl/object/Values.h>
 
@@ -49,8 +48,8 @@ public:
 	Connection(std::string hostUrl, const esl::object::Values<std::string>& settings);
 	~Connection();
 
-	esl::http::client::PreparedRequest prepare(esl::http::client::Request&& request) const override;
-	esl::http::client::PreparedRequest prepare(const esl::http::client::Request& request) const override;
+	esl::http::client::Response sendRequest(esl::http::client::Request request, esl::io::Output output, esl::http::client::Interface::CreateInput createInput) override;
+	esl::http::client::Response sendRequest(esl::http::client::Request request, esl::io::Output output, esl::io::Input input) override;
 
 private:
 	CURL* curl;

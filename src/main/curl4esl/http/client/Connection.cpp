@@ -21,7 +21,6 @@ SOFTWARE.
 */
 
 #include <curl4esl/http/client/Connection.h>
-#include <curl4esl/http/client/PreparedRequestBinding.h>
 #include <curl4esl/http/client/Send.h>
 #include <curl4esl/Logger.h>
 
@@ -186,25 +185,26 @@ Connection::~Connection() {
     curl_easy_cleanup(curl);
 }
 
-esl::http::client::PreparedRequest Connection::prepare(esl::http::client::Request&& request) const {
+esl::http::client::Response Connection::sendRequest(esl::http::client::Request request, esl::io::Output output, esl::http::client::Interface::CreateInput createInput) {
 	std::string requestUrl = hostUrl;
 	if(request.getPath().empty() == false && request.getPath().at(0) != '/') {
 		requestUrl += "/";
 	}
 	requestUrl += request.getPath();
 
-	return esl::http::client::PreparedRequest(std::unique_ptr<esl::http::client::PreparedRequest::Binding>(new PreparedRequestBinding(std::move(request), curl, std::move(requestUrl))));
+	Send send(curl, request, requestUrl, output, createInput);
+	return send.execute();
 }
 
-esl::http::client::PreparedRequest Connection::prepare(const esl::http::client::Request& request) const {
-//	std::string requestUrl = hostUrl + "/" + esl::utility::String::ltrim(request.getPath(), '/');
+esl::http::client::Response Connection::sendRequest(esl::http::client::Request request, esl::io::Output output, esl::io::Input input) {
 	std::string requestUrl = hostUrl;
 	if(request.getPath().empty() == false && request.getPath().at(0) != '/') {
 		requestUrl += "/";
 	}
 	requestUrl += request.getPath();
 
-	return esl::http::client::PreparedRequest(std::unique_ptr<esl::http::client::PreparedRequest::Binding>(new PreparedRequestBinding(request, curl, std::move(requestUrl))));
+	Send send(curl, request, requestUrl, output, std::move(input));
+	return send.execute();
 }
 
 } /* namespace client */
