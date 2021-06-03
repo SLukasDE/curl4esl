@@ -20,11 +20,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <curl4esl/http/client/Send.h>
-#include <curl4esl/http/client/Connection.h>
+#include <curl4esl/com/http/client/Send.h>
+#include <curl4esl/com/http/client/Connection.h>
 #include <curl4esl/Logger.h>
 
-#include <esl/http/client/exception/NetworkError.h>
+#include <esl/com/http/client/exception/NetworkError.h>
 #include <esl/utility/String.h>
 #include <esl/Stacktrace.h>
 
@@ -32,22 +32,23 @@ SOFTWARE.
 #include <cstring>
 
 namespace curl4esl {
+namespace com {
 namespace http {
 namespace client {
 
 namespace {
-Logger logger("curl4esl::http::client::Send");
+Logger logger("curl4esl::com::http::client::Send");
 }  // anonymer namespace
 
-Send::Send(CURL* curl, const esl::http::client::Request& request, const std::string& requestUrl, esl::io::Output& output, esl::http::client::Interface::CreateInput createInput)
+Send::Send(CURL* curl, const esl::com::http::client::Request& request, const std::string& requestUrl, esl::io::Output& output, esl::com::http::client::Interface::CreateInput createInput)
 : Send(curl, request, requestUrl, output, esl::io::Input(), createInput)
 { }
 
-Send::Send(CURL* curl, const esl::http::client::Request& request, const std::string& requestUrl, esl::io::Output& output, esl::io::Input input)
+Send::Send(CURL* curl, const esl::com::http::client::Request& request, const std::string& requestUrl, esl::io::Output& output, esl::io::Input input)
 : Send(curl, request, requestUrl, output, std::move(input), nullptr)
 { }
 
-Send::Send(CURL* aCurl, const esl::http::client::Request& aRequest, const std::string& aRequestUrl, esl::io::Output& aOutput, esl::io::Input aInput, esl::http::client::Interface::CreateInput aCreateInput)
+Send::Send(CURL* aCurl, const esl::com::http::client::Request& aRequest, const std::string& aRequestUrl, esl::io::Output& aOutput, esl::io::Input aInput, esl::com::http::client::Interface::CreateInput aCreateInput)
 : curl(aCurl),
   request(aRequest),
   requestUrl(aRequestUrl),
@@ -123,7 +124,7 @@ Send::~Send() {
 	}
 }
 
-esl::http::client::Response Send::execute() {
+esl::com::http::client::Response Send::execute() {
 	CURLcode rc = curl_easy_perform(curl);
 
 	if(rc != CURLE_OK) {
@@ -136,7 +137,7 @@ esl::http::client::Response Send::execute() {
 		}
 
 		std::string str = strStream.str();
-		throw esl::addStacktrace(esl::http::client::exception::NetworkError(static_cast<int>(rc), str));
+		throw esl::addStacktrace(esl::com::http::client::exception::NetworkError(static_cast<int>(rc), str));
 	}
 
 	if(requestHeaders) {
@@ -367,13 +368,13 @@ std::size_t Send::writeData(const std::uint8_t* data, const std::size_t size) {
 	return size;
 }
 
-const esl::http::client::Response& Send::getResponse() {
+const esl::com::http::client::Response& Send::getResponse() {
 	if(!response) {
 		long httpCode = 0;
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
 		responseStatusCode = static_cast<unsigned short>(httpCode);
 
-		response.reset(new esl::http::client::Response(responseStatusCode, std::move(responseHeaders)));
+		response.reset(new esl::com::http::client::Response(responseStatusCode, std::move(responseHeaders)));
 	}
 
 	return *response;
@@ -381,4 +382,5 @@ const esl::http::client::Response& Send::getResponse() {
 
 } /* namespace client */
 } /* namespace http */
+} /* namespace com */
 } /* namespace curl4esl */

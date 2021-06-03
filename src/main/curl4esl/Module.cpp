@@ -21,9 +21,9 @@ SOFTWARE.
 */
 
 #include <curl4esl/Module.h>
-#include <curl4esl/http/client/Connection.h>
+#include <curl4esl/com/http/client/Connection.h>
 
-#include <esl/http/client/Interface.h>
+#include <esl/com/http/client/Interface.h>
 #include <esl/module/Interface.h>
 #include <esl/Stacktrace.h>
 
@@ -49,8 +49,8 @@ Module::Module()
 {
 	esl::module::Module::initialize(*this);
 
-	addInterface(std::unique_ptr<const esl::module::Interface>(new esl::http::client::Interface(
-			getId(), http::client::Connection::getImplementation(), &http::client::Connection::create)));
+	addInterface(std::unique_ptr<const esl::module::Interface>(new esl::com::http::client::Interface(
+			getId(), com::http::client::Connection::getImplementation(), &com::http::client::Connection::create)));
 }
 
 } /* anonymous namespace */

@@ -20,11 +20,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef CURL4ESL_HTTP_CLIENT_CONNECTION_H_
-#define CURL4ESL_HTTP_CLIENT_CONNECTION_H_
+#ifndef CURL4ESL_COM_HTTP_CLIENT_CONNECTION_H_
+#define CURL4ESL_COM_HTTP_CLIENT_CONNECTION_H_
 
-#include <esl/http/client/Interface.h>
-#include <esl/http/client/Request.h>
+#include <esl/com/http/client/Interface.h>
+#include <esl/com/http/client/Request.h>
 #include <esl/utility/URL.h>
 #include <esl/object/Values.h>
 
@@ -33,13 +33,14 @@ SOFTWARE.
 #include <string>
 
 namespace curl4esl {
+namespace com {
 namespace http {
 namespace client {
 
-class Connection : public esl::http::client::Interface::Connection {
+class Connection : public esl::com::http::client::Interface::Connection {
 friend class Send;
 public:
-	static std::unique_ptr<esl::http::client::Interface::Connection> create(const esl::utility::URL& hostUrl, const esl::object::Values<std::string>& settings);
+	static std::unique_ptr<esl::com::http::client::Interface::Connection> create(const esl::utility::URL& hostUrl, const esl::object::Values<std::string>& settings);
 
 	static inline const char* getImplementation() {
 		return "curl4esl";
@@ -48,8 +49,8 @@ public:
 	Connection(std::string hostUrl, const esl::object::Values<std::string>& settings);
 	~Connection();
 
-	esl::http::client::Response sendRequest(esl::http::client::Request request, esl::io::Output output, esl::http::client::Interface::CreateInput createInput) override;
-	esl::http::client::Response sendRequest(esl::http::client::Request request, esl::io::Output output, esl::io::Input input) override;
+	esl::com::http::client::Response send(esl::com::http::client::Request request, esl::io::Output output, esl::com::http::client::Interface::CreateInput createInput) override;
+	esl::com::http::client::Response send(esl::com::http::client::Request request, esl::io::Output output, esl::io::Input input) override;
 
 private:
 	CURL* curl;
@@ -58,6 +59,7 @@ private:
 
 } /* namespace client */
 } /* namespace http */
+} /* namespace com */
 } /* namespace curl4esl */
 
-#endif /* CURL4ESL_HTTP_CLIENT_CONNECTION_H_ */
+#endif /* CURL4ESL_COM_HTTP_CLIENT_CONNECTION_H_ */

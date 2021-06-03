@@ -20,11 +20,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <curl4esl/http/client/Connection.h>
-#include <curl4esl/http/client/Send.h>
+#include <curl4esl/com/http/client/Connection.h>
+#include <curl4esl/com/http/client/Send.h>
 #include <curl4esl/Logger.h>
 
-#include <esl/http/client/Response.h>
+#include <esl/com/http/client/Response.h>
 #include <esl/utility/String.h>
 #include <esl/Stacktrace.h>
 #include <esl/logging/Logger.h>
@@ -35,12 +35,13 @@ SOFTWARE.
 #include <memory>
 
 namespace curl4esl {
+namespace com {
 namespace http {
 namespace client {
 
 namespace {
 
-Logger logger("curl4esl::http::client::Connection");
+Logger logger("curl4esl::com::http::client::Connection");
 
 struct CurlSingleton {
 	CurlSingleton() {
@@ -70,7 +71,7 @@ std::string createAuthenticationStr(const std::string& username, const std::stri
 }  // anonymer namespace
 
 
-std::unique_ptr<esl::http::client::Interface::Connection> Connection::create(const esl::utility::URL& hostUrl, const esl::object::Values<std::string>& settings) {
+std::unique_ptr<esl::com::http::client::Interface::Connection> Connection::create(const esl::utility::URL& hostUrl, const esl::object::Values<std::string>& settings) {
 	if(hostUrl.getScheme() != esl::utility::Protocol::protocolHttp && hostUrl.getScheme() != esl::utility::Protocol::protocolHttps) {
         throw esl::addStacktrace(std::runtime_error("Unknown scheme in URL: \"" + hostUrl.getScheme().toString() + "\""));
 	}
@@ -87,11 +88,11 @@ std::unique_ptr<esl::http::client::Interface::Connection> Connection::create(con
 	}
 	*/
 
-	return std::unique_ptr<esl::http::client::Interface::Connection>(new Connection(hostUrl.toString(), settings));
+	return std::unique_ptr<esl::com::http::client::Interface::Connection>(new Connection(hostUrl.toString(), settings));
 }
 
 Connection::Connection(std::string aHostUrl, const esl::object::Values<std::string>& settings)
-: esl::http::client::Interface::Connection(),
+: esl::com::http::client::Interface::Connection(),
   curl(curlSingleton.easyInit()),
   hostUrl(esl::utility::String::rtrim(aHostUrl, '/'))
 {
@@ -185,7 +186,7 @@ Connection::~Connection() {
     curl_easy_cleanup(curl);
 }
 
-esl::http::client::Response Connection::sendRequest(esl::http::client::Request request, esl::io::Output output, esl::http::client::Interface::CreateInput createInput) {
+esl::com::http::client::Response Connection::send(esl::com::http::client::Request request, esl::io::Output output, esl::com::http::client::Interface::CreateInput createInput) {
 	std::string requestUrl = hostUrl;
 	if(request.getPath().empty() == false && request.getPath().at(0) != '/') {
 		requestUrl += "/";
@@ -196,7 +197,7 @@ esl::http::client::Response Connection::sendRequest(esl::http::client::Request r
 	return send.execute();
 }
 
-esl::http::client::Response Connection::sendRequest(esl::http::client::Request request, esl::io::Output output, esl::io::Input input) {
+esl::com::http::client::Response Connection::send(esl::com::http::client::Request request, esl::io::Output output, esl::io::Input input) {
 	std::string requestUrl = hostUrl;
 	if(request.getPath().empty() == false && request.getPath().at(0) != '/') {
 		requestUrl += "/";
@@ -209,4 +210,5 @@ esl::http::client::Response Connection::sendRequest(esl::http::client::Request r
 
 } /* namespace client */
 } /* namespace http */
+} /* namespace com */
 } /* namespace curl4esl */
