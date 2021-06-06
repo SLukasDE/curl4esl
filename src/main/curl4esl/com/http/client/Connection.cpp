@@ -186,7 +186,7 @@ Connection::~Connection() {
     curl_easy_cleanup(curl);
 }
 
-esl::com::http::client::Response Connection::send(esl::com::http::client::Request request, esl::io::Output output, esl::com::http::client::Interface::CreateInput createInput) {
+esl::com::http::client::Response Connection::send(esl::com::http::client::Request request, esl::io::Output output, esl::com::http::client::Interface::CreateInput createInput) const {
 	std::string requestUrl = hostUrl;
 	if(request.getPath().empty() == false && request.getPath().at(0) != '/') {
 		requestUrl += "/";
@@ -197,7 +197,7 @@ esl::com::http::client::Response Connection::send(esl::com::http::client::Reques
 	return send.execute();
 }
 
-esl::com::http::client::Response Connection::send(esl::com::http::client::Request request, esl::io::Output output, esl::io::Input input) {
+esl::com::http::client::Response Connection::send(esl::com::http::client::Request request, esl::io::Output output, esl::io::Input input) const {
 	std::string requestUrl = hostUrl;
 	if(request.getPath().empty() == false && request.getPath().at(0) != '/') {
 		requestUrl += "/";

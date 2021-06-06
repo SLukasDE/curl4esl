@@ -49,8 +49,8 @@ public:
 	Connection(std::string hostUrl, const esl::object::Values<std::string>& settings);
 	~Connection();
 
-	esl::com::http::client::Response send(esl::com::http::client::Request request, esl::io::Output output, esl::com::http::client::Interface::CreateInput createInput) override;
-	esl::com::http::client::Response send(esl::com::http::client::Request request, esl::io::Output output, esl::io::Input input) override;
+	esl::com::http::client::Response send(esl::com::http::client::Request request, esl::io::Output output, esl::com::http::client::Interface::CreateInput createInput) const override;
+	esl::com::http::client::Response send(esl::com::http::client::Request request, esl::io::Output output, esl::io::Input input) const override;
 
 private:
 	CURL* curl;
