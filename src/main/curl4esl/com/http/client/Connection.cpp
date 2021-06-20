@@ -180,6 +180,9 @@ Connection::Connection(std::string aHostUrl, const esl::object::Values<std::stri
 	else {
 	    curl_easy_setopt(curl, CURLOPT_USERAGENT, "esl-http-client");
 	}
+
+	/* ignore SSL certificate */
+	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 }
 
 Connection::~Connection() {
