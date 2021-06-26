@@ -40,13 +40,13 @@ namespace client {
 class Connection : public esl::com::http::client::Interface::Connection {
 friend class Send;
 public:
-	static std::unique_ptr<esl::com::http::client::Interface::Connection> create(const esl::utility::URL& hostUrl, const esl::object::Values<std::string>& settings);
+	static std::unique_ptr<esl::com::http::client::Interface::Connection> create(const esl::utility::URL& hostUrl, const esl::com::http::client::Interface::Settings& settings);
 
 	static inline const char* getImplementation() {
 		return "curl4esl";
 	}
 
-	Connection(std::string hostUrl, const esl::object::Values<std::string>& settings);
+	Connection(std::string hostUrl, const esl::com::http::client::Interface::Settings& settings);
 	~Connection();
 
 	esl::com::http::client::Response send(esl::com::http::client::Request request, esl::io::Output output, esl::com::http::client::Interface::CreateInput createInput) const override;
