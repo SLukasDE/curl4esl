@@ -27,7 +27,10 @@ SOFTWARE.
 
 namespace curl4esl {
 
-esl::module::Module& getModule();
+struct Module final {
+	Module() = delete;
+	static void install(esl::module::Module& module);
+};
 
 } /* namespace curl4esl */
 
