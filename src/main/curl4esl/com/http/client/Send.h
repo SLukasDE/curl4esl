@@ -88,8 +88,6 @@ private:
 
 	CURL* curl;
 
-	const esl::com::http::client::Request& request;
-	const std::string& requestUrl;
 	curl_slist* requestHeaders = nullptr;
 
 	bool firstWriteData = true;

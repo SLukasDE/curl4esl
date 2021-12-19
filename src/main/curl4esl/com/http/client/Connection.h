@@ -25,8 +25,6 @@ SOFTWARE.
 
 #include <esl/com/http/client/Interface.h>
 #include <esl/com/http/client/Request.h>
-#include <esl/utility/URL.h>
-#include <esl/object/Values.h>
 
 #include <curl/curl.h>
 
@@ -40,17 +38,11 @@ namespace client {
 class Connection : public esl::com::http::client::Interface::Connection {
 friend class Send;
 public:
-	static std::unique_ptr<esl::com::http::client::Interface::Connection> create(const esl::utility::URL& hostUrl, const esl::com::http::client::Interface::Settings& settings);
-
-	static inline const char* getImplementation() {
-		return "curl4esl";
-	}
-
-	Connection(std::string hostUrl, const esl::com::http::client::Interface::Settings& settings);
+	Connection(CURL* curl, std::string hostUrl);
 	~Connection();
 
-	esl::com::http::client::Response send(esl::com::http::client::Request request, esl::io::Output output, esl::com::http::client::Interface::CreateInput createInput) const override;
-	esl::com::http::client::Response send(esl::com::http::client::Request request, esl::io::Output output, esl::io::Input input) const override;
+	esl::com::http::client::Response send(const esl::com::http::client::Request& request, esl::io::Output output, esl::com::http::client::Interface::CreateInput createInput) const override;
+	esl::com::http::client::Response send(const esl::com::http::client::Request& request, esl::io::Output output, esl::io::Input input) const override;
 
 private:
 	CURL* curl;

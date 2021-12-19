@@ -48,10 +48,8 @@ Send::Send(CURL* curl, const esl::com::http::client::Request& request, const std
 : Send(curl, request, requestUrl, output, std::move(input), nullptr)
 { }
 
-Send::Send(CURL* aCurl, const esl::com::http::client::Request& aRequest, const std::string& aRequestUrl, esl::io::Output& aOutput, esl::io::Input aInput, esl::com::http::client::Interface::CreateInput aCreateInput)
+Send::Send(CURL* aCurl, const esl::com::http::client::Request& request, const std::string& requestUrl, esl::io::Output& aOutput, esl::io::Input aInput, esl::com::http::client::Interface::CreateInput aCreateInput)
 : curl(aCurl),
-  request(aRequest),
-  requestUrl(aRequestUrl),
   firstWriteData(aCreateInput),
   input(std::move(aInput)),
   createInput(aCreateInput),

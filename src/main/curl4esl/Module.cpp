@@ -21,7 +21,7 @@ SOFTWARE.
 */
 
 #include <curl4esl/Module.h>
-#include <curl4esl/com/http/client/Connection.h>
+#include <curl4esl/com/http/client/ConnectionFactory.h>
 
 #include <esl/com/http/client/Interface.h>
 #include <esl/Module.h>
@@ -32,8 +32,8 @@ void Module::install(esl::module::Module& module) {
 	esl::setModule(module);
 
 	module.addInterface(esl::com::http::client::Interface::createInterface(
-			com::http::client::Connection::getImplementation(),
-			&com::http::client::Connection::create));
+			com::http::client::ConnectionFactory::getImplementation(),
+			&com::http::client::ConnectionFactory::create));
 }
 
 } /* namespace curl4esl */
