@@ -1,6 +1,6 @@
 /*
 MIT License
-Copyright (c) 2019-2021 Sven Lukas
+Copyright (c) 2019-2022 Sven Lukas
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -66,7 +66,7 @@ std::string createAuthenticationStr(const std::string& username, const std::stri
 }
 
 std::unique_ptr<esl::com::http::client::Interface::ConnectionFactory> ConnectionFactory::create(const esl::utility::URL& url, const esl::com::http::client::Interface::Settings& settings) {
-	if(url.getScheme() != esl::utility::Protocol::protocolHttp && url.getScheme() != esl::utility::Protocol::protocolHttps) {
+	if(url.getScheme() != esl::utility::Protocol::http && url.getScheme() != esl::utility::Protocol::https) {
         throw std::runtime_error("Unknown scheme in URL: \"" + url.getScheme().toString() + "\"");
 	}
 /*
