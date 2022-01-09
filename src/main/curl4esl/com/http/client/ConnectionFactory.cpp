@@ -90,7 +90,7 @@ ConnectionFactory::ConnectionFactory(std::string aUrl, const esl::com::http::cli
   url(esl::utility::String::rtrim(aUrl, '/'))
 { }
 
-std::unique_ptr<esl::com::http::client::Interface::Connection> ConnectionFactory::createConnection(/*const esl::com::http::client::Interface::Settings& settings*/) const {
+std::unique_ptr<esl::com::http::client::Connection> ConnectionFactory::createConnection(/*const esl::com::http::client::Interface::Settings& settings*/) const {
 	CURL* curl = curlSingleton.easyInit();
 
     curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
@@ -217,7 +217,7 @@ std::unique_ptr<esl::com::http::client::Interface::Connection> ConnectionFactory
 	/* ignore SSL certificate */
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 
-	return std::unique_ptr<esl::com::http::client::Interface::Connection>(new Connection(curl, url));
+	return std::unique_ptr<esl::com::http::client::Connection>(new Connection(curl, url));
 }
 
 } /* namespace client */

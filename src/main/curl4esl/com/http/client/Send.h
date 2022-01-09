@@ -26,6 +26,7 @@ SOFTWARE.
 #include <esl/com/http/client/Interface.h>
 #include <esl/com/http/client/Request.h>
 #include <esl/com/http/client/Response.h>
+#include <esl/io/Input.h>
 #include <esl/io/Output.h>
 
 #include <curl/curl.h>
@@ -37,6 +38,7 @@ SOFTWARE.
 #include <map>
 #include <memory>
 #include <cstdint>
+#include <functional>
 
 namespace curl4esl {
 namespace com {
@@ -45,14 +47,14 @@ namespace client {
 
 class Send {
 public:
-	Send(CURL* curl, const esl::com::http::client::Request& request, const std::string& requestUrl, esl::io::Output& output, esl::com::http::client::Interface::CreateInput createInput);
+	Send(CURL* curl, const esl::com::http::client::Request& request, const std::string& requestUrl, esl::io::Output& output, std::function<esl::io::Input (const esl::com::http::client::Response&)> createInput);
 	Send(CURL* curl, const esl::com::http::client::Request& request, const std::string& requestUrl, esl::io::Output& output, esl::io::Input input);
 	~Send();
 
 	esl::com::http::client::Response execute();
 
 private:
-	Send(CURL* curl, const esl::com::http::client::Request& request, const std::string& requestUrl, esl::io::Output& output, esl::io::Input input, esl::com::http::client::Interface::CreateInput createInput);
+	Send(CURL* curl, const esl::com::http::client::Request& request, const std::string& requestUrl, esl::io::Output& output, esl::io::Input input, std::function<esl::io::Input (const esl::com::http::client::Response&)> createInput);
 
 	void addRequestHeader(const std::string& key, const std::string& value);
 
@@ -92,7 +94,7 @@ private:
 
 	bool firstWriteData = true;
 	esl::io::Input input;
-	esl::com::http::client::Interface::CreateInput createInput;
+	std::function<esl::io::Input (const esl::com::http::client::Response&)> createInput;
 	esl::io::Output& output;
 
 	std::unique_ptr<esl::com::http::client::Response> response;

@@ -23,11 +23,15 @@ SOFTWARE.
 #ifndef CURL4ESL_COM_HTTP_CLIENT_CONNECTION_H_
 #define CURL4ESL_COM_HTTP_CLIENT_CONNECTION_H_
 
-#include <esl/com/http/client/Interface.h>
+#include <esl/com/http/client/Connection.h>
 #include <esl/com/http/client/Request.h>
+#include <esl/com/http/client/Response.h>
+#include <esl/io/Input.h>
+#include <esl/io/Output.h>
 
 #include <curl/curl.h>
 
+#include <functional>
 #include <string>
 
 namespace curl4esl {
@@ -35,13 +39,13 @@ namespace com {
 namespace http {
 namespace client {
 
-class Connection : public esl::com::http::client::Interface::Connection {
+class Connection : public esl::com::http::client::Connection {
 friend class Send;
 public:
 	Connection(CURL* curl, std::string hostUrl);
 	~Connection();
 
-	esl::com::http::client::Response send(const esl::com::http::client::Request& request, esl::io::Output output, esl::com::http::client::Interface::CreateInput createInput) const override;
+	esl::com::http::client::Response send(const esl::com::http::client::Request& request, esl::io::Output output, std::function<esl::io::Input (const esl::com::http::client::Response&)> createInput) const override;
 	esl::com::http::client::Response send(const esl::com::http::client::Request& request, esl::io::Output output, esl::io::Input input) const override;
 
 private:

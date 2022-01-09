@@ -51,7 +51,7 @@ Connection::~Connection() {
     curl_easy_cleanup(curl);
 }
 
-esl::com::http::client::Response Connection::send(const esl::com::http::client::Request& request, esl::io::Output output, esl::com::http::client::Interface::CreateInput createInput) const {
+esl::com::http::client::Response Connection::send(const esl::com::http::client::Request& request, esl::io::Output output, std::function<esl::io::Input (const esl::com::http::client::Response&)> createInput) const {
 	std::string requestUrl = hostUrl;
 	if(request.getPath().empty() == false && request.getPath().at(0) != '/') {
 		requestUrl += "/";

@@ -40,7 +40,7 @@ namespace {
 Logger logger("curl4esl::com::http::client::Send");
 }  // anonymer namespace
 
-Send::Send(CURL* curl, const esl::com::http::client::Request& request, const std::string& requestUrl, esl::io::Output& output, esl::com::http::client::Interface::CreateInput createInput)
+Send::Send(CURL* curl, const esl::com::http::client::Request& request, const std::string& requestUrl, esl::io::Output& output, std::function<esl::io::Input (const esl::com::http::client::Response&)> createInput)
 : Send(curl, request, requestUrl, output, esl::io::Input(), createInput)
 { }
 
@@ -48,7 +48,7 @@ Send::Send(CURL* curl, const esl::com::http::client::Request& request, const std
 : Send(curl, request, requestUrl, output, std::move(input), nullptr)
 { }
 
-Send::Send(CURL* aCurl, const esl::com::http::client::Request& request, const std::string& requestUrl, esl::io::Output& aOutput, esl::io::Input aInput, esl::com::http::client::Interface::CreateInput aCreateInput)
+Send::Send(CURL* aCurl, const esl::com::http::client::Request& request, const std::string& requestUrl, esl::io::Output& aOutput, esl::io::Input aInput, std::function<esl::io::Input (const esl::com::http::client::Response&)> aCreateInput)
 : curl(aCurl),
   firstWriteData(aCreateInput),
   input(std::move(aInput)),

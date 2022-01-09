@@ -24,6 +24,7 @@ SOFTWARE.
 #define CURL4ESL_COM_HTTP_CLIENT_CONNECTIONFACTORY_H_
 
 #include <esl/com/http/client/Interface.h>
+#include <esl/com/http/client/Connection.h>
 #include <esl/utility/URL.h>
 
 #include <curl/curl.h>
@@ -46,7 +47,7 @@ public:
 
 	ConnectionFactory(std::string url, const esl::com::http::client::Interface::Settings& settings);
 
-	std::unique_ptr<esl::com::http::client::Interface::Connection> createConnection() const override;
+	std::unique_ptr<esl::com::http::client::Connection> createConnection() const override;
 
 private:
 	esl::com::http::client::Interface::Settings settings;
