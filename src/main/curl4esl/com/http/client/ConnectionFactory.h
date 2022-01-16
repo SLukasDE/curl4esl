@@ -25,7 +25,6 @@ SOFTWARE.
 
 #include <esl/com/http/client/Interface.h>
 #include <esl/com/http/client/Connection.h>
-#include <esl/utility/URL.h>
 
 #include <curl/curl.h>
 
@@ -39,19 +38,45 @@ namespace client {
 
 class ConnectionFactory : public esl::com::http::client::Interface::ConnectionFactory {
 public:
-	static std::unique_ptr<esl::com::http::client::Interface::ConnectionFactory> create(const esl::utility::URL& url, const esl::com::http::client::Interface::Settings& settings);
+	static std::unique_ptr<esl::com::http::client::Interface::ConnectionFactory> create(const esl::com::http::client::Interface::Settings& settings);
 
 	static inline const char* getImplementation() {
 		return "curl4esl";
 	}
 
-	ConnectionFactory(std::string url, const esl::com::http::client::Interface::Settings& settings);
+	ConnectionFactory(const esl::com::http::client::Interface::Settings& settings);
 
 	std::unique_ptr<esl::com::http::client::Connection> createConnection() const override;
 
 private:
-	esl::com::http::client::Interface::Settings settings;
 	std::string url;
+
+	long timeout = 0;
+	bool hasTimeout = false;
+
+	long lowSpeedLimit = 0;
+	bool hasLowSpeedLimit = false;
+
+	long lowSpeedTime = 0;
+	bool hasLowSpeedTime = false;
+
+	std::string username;
+	bool hasUsername = false;
+
+	std::string password;
+	bool hasPassword = false;
+
+	std::string proxyServer;
+	bool hasProxyServer = false;
+
+	std::string proxyUsername;
+	bool hasProxyUsername = false;
+
+	std::string proxyPassword;
+	bool hasProxyPassword = false;
+
+	std::string userAgent;
+	bool hasUserAgent = false;
 };
 
 } /* namespace client */

@@ -25,6 +25,7 @@ SOFTWARE.
 #include <curl4esl/Logger.h>
 
 #include <esl/utility/String.h>
+#include <esl/utility/URL.h>
 #include <esl/Stacktrace.h>
 
 #include <stdexcept>
@@ -65,10 +66,7 @@ std::string createAuthenticationStr(const std::string& username, const std::stri
 }
 }
 
-std::unique_ptr<esl::com::http::client::Interface::ConnectionFactory> ConnectionFactory::create(const esl::utility::URL& url, const esl::com::http::client::Interface::Settings& settings) {
-	if(url.getScheme() != esl::utility::Protocol::http && url.getScheme() != esl::utility::Protocol::https) {
-        throw std::runtime_error("Unknown scheme in URL: \"" + url.getScheme().toString() + "\"");
-	}
+std::unique_ptr<esl::com::http::client::Interface::ConnectionFactory> ConnectionFactory::create(const esl::com::http::client::Interface::Settings& settings) {
 /*
 	std::string url = hostUrl.getScheme().toString() + "://" + hostUrl.getHostname();
 
@@ -82,57 +80,29 @@ std::unique_ptr<esl::com::http::client::Interface::ConnectionFactory> Connection
 	}
 	*/
 
-	return std::unique_ptr<esl::com::http::client::Interface::ConnectionFactory>(new ConnectionFactory(url.toString(), settings));
+	return std::unique_ptr<esl::com::http::client::Interface::ConnectionFactory>(new ConnectionFactory(settings));
 }
 
-ConnectionFactory::ConnectionFactory(std::string aUrl, const esl::com::http::client::Interface::Settings& aSettings)
-: settings(aSettings),
-  url(esl::utility::String::rtrim(aUrl, '/'))
-{ }
-
-std::unique_ptr<esl::com::http::client::Connection> ConnectionFactory::createConnection(/*const esl::com::http::client::Interface::Settings& settings*/) const {
-	CURL* curl = curlSingleton.easyInit();
-
-    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
-    curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);
-    curl_easy_setopt(curl, CURLOPT_AUTOREFERER, 1L);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 10L);
-    curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "");
-
-    // dont want to get a sig alarm on timeoutInSec
-    // (nur wen Timeout gesetzt wird ?)
-    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-
-	long lowSpeedLimit = 0;
-	bool hasLowSpeedLimit = false;
-
-	long lowSpeedTime = 0;
-	bool hasLowSpeedTime = false;
-
-	std::string username;
-	bool hasUsername = false;
-
-	std::string password;
-	bool hasPassword = false;
-
-	bool hasProxyServer = false;
-
-	std::string proxyUsername;
-	bool hasProxyUsername = false;
-
-	std::string proxyPassword;
-	bool hasProxyPassword = false;
-
-	std::string userAgent;
-	bool hasUserAgent = false;
-
+ConnectionFactory::ConnectionFactory(const esl::com::http::client::Interface::Settings& settings) {
     for(const auto& setting : settings) {
-		if(setting.first == "timeout") {
-			long timeout = std::stol(setting.second);
-			if(timeout) {
-				curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout);
+		if(setting.first == "url") {
+			if(!url.empty()) {
+	            throw std::runtime_error("curl4esl: multiple definition of attribute 'url'.");
 			}
+			url = esl::utility::String::rtrim(setting.second, '/');
+			if(url.empty()) {
+	            throw std::runtime_error("curl4esl: Invalid value \"\" for attribute 'url'.");
+			}
+
+			esl::utility::URL aURL(url);
+			if(aURL.getScheme() != esl::utility::Protocol::http && aURL.getScheme() != esl::utility::Protocol::https) {
+	            throw std::runtime_error("curl4esl: Invalid scheme in value \"" + url + "\" of attribute 'url'.");
+			}
+		}
+
+		else if(setting.first == "timeout") {
+			hasTimeout = true;
+			timeout = std::stol(setting.second);
 		}
 
 		else if(setting.first == "lowSpeedLimit") {
@@ -157,7 +127,7 @@ std::unique_ptr<esl::com::http::client::Connection> ConnectionFactory::createCon
 
 		else if(setting.first == "proxyServer") {
 			hasProxyServer = true;
-			curl_easy_setopt(curl, CURLOPT_PROXY, setting.second.c_str());
+			proxyServer = setting.second;
 		}
 
 		else if(setting.first == "proxyUsername") {
@@ -175,6 +145,33 @@ std::unique_ptr<esl::com::http::client::Connection> ConnectionFactory::createCon
 			userAgent = setting.second;
 		}
     }
+
+	if(url.empty()) {
+        throw std::runtime_error("curl4esl: Attribute 'url' is missing.");
+	}
+}
+
+std::unique_ptr<esl::com::http::client::Connection> ConnectionFactory::createConnection(/*const esl::com::http::client::Interface::Settings& settings*/) const {
+	CURL* curl = curlSingleton.easyInit();
+
+    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
+    curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);
+    curl_easy_setopt(curl, CURLOPT_AUTOREFERER, 1L);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 10L);
+    curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "");
+
+    // dont want to get a sig alarm on timeoutInSec
+    // (nur wen Timeout gesetzt wird ?)
+    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+
+	if(hasTimeout && timeout > 0) {
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout);
+	}
+
+	if(hasProxyServer) {
+		curl_easy_setopt(curl, CURLOPT_PROXY, proxyServer.c_str());
+	}
 
 	if(hasLowSpeedLimit || hasLowSpeedTime) {
 		if(!hasLowSpeedLimit) {
