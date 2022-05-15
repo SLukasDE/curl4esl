@@ -28,8 +28,10 @@ SOFTWARE.
 
 #include <curl/curl.h>
 
-#include <string>
 #include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace curl4esl {
 namespace com {
@@ -38,13 +40,13 @@ namespace client {
 
 class ConnectionFactory : public esl::com::http::client::Interface::ConnectionFactory {
 public:
-	static std::unique_ptr<esl::com::http::client::Interface::ConnectionFactory> create(const esl::com::http::client::Interface::Settings& settings);
+	static std::unique_ptr<esl::com::http::client::Interface::ConnectionFactory> create(const std::vector<std::pair<std::string, std::string>>& settings);
 
 	static inline const char* getImplementation() {
 		return "curl4esl";
 	}
 
-	ConnectionFactory(const esl::com::http::client::Interface::Settings& settings);
+	ConnectionFactory(const std::vector<std::pair<std::string, std::string>>& settings);
 
 	std::unique_ptr<esl::com::http::client::Connection> createConnection() const override;
 

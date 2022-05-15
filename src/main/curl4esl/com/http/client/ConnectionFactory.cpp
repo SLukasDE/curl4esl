@@ -66,7 +66,7 @@ std::string createAuthenticationStr(const std::string& username, const std::stri
 }
 }
 
-std::unique_ptr<esl::com::http::client::Interface::ConnectionFactory> ConnectionFactory::create(const esl::com::http::client::Interface::Settings& settings) {
+std::unique_ptr<esl::com::http::client::Interface::ConnectionFactory> ConnectionFactory::create(const std::vector<std::pair<std::string, std::string>>& settings) {
 /*
 	std::string url = hostUrl.getScheme().toString() + "://" + hostUrl.getHostname();
 
@@ -83,7 +83,7 @@ std::unique_ptr<esl::com::http::client::Interface::ConnectionFactory> Connection
 	return std::unique_ptr<esl::com::http::client::Interface::ConnectionFactory>(new ConnectionFactory(settings));
 }
 
-ConnectionFactory::ConnectionFactory(const esl::com::http::client::Interface::Settings& settings) {
+ConnectionFactory::ConnectionFactory(const std::vector<std::pair<std::string, std::string>>& settings) {
     for(const auto& setting : settings) {
 		if(setting.first == "url") {
 			if(!url.empty()) {
@@ -143,6 +143,10 @@ ConnectionFactory::ConnectionFactory(const esl::com::http::client::Interface::Se
 		else if(setting.first == "userAgent") {
 			hasUserAgent = true;
 			userAgent = setting.second;
+		}
+
+		else {
+            throw esl::addStacktrace(std::runtime_error("unknown attribute '\"" + setting.first + "\"'."));
 		}
     }
 
