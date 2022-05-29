@@ -26,7 +26,6 @@ SOFTWARE.
 
 #include <esl/com/http/client/Response.h>
 #include <esl/utility/String.h>
-#include <esl/Stacktrace.h>
 
 #include <cstdio>
 #include <sstream>

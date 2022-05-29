@@ -26,7 +26,7 @@ SOFTWARE.
 
 #include <esl/utility/String.h>
 #include <esl/utility/URL.h>
-#include <esl/Stacktrace.h>
+#include <esl/stacktrace/Stacktrace.h>
 
 #include <stdexcept>
 
@@ -95,7 +95,7 @@ ConnectionFactory::ConnectionFactory(const std::vector<std::pair<std::string, st
 			}
 
 			esl::utility::URL aURL(url);
-			if(aURL.getScheme() != esl::utility::Protocol::http && aURL.getScheme() != esl::utility::Protocol::https) {
+			if(aURL.getScheme() != esl::utility::Protocol::Type::http && aURL.getScheme() != esl::utility::Protocol::Type::https) {
 	            throw std::runtime_error("curl4esl: Invalid scheme in value \"" + url + "\" of attribute 'url'.");
 			}
 		}
@@ -146,7 +146,7 @@ ConnectionFactory::ConnectionFactory(const std::vector<std::pair<std::string, st
 		}
 
 		else {
-            throw esl::addStacktrace(std::runtime_error("unknown attribute '\"" + setting.first + "\"'."));
+            throw esl::stacktrace::Stacktrace::add(std::runtime_error("unknown attribute '\"" + setting.first + "\"'."));
 		}
     }
 
@@ -179,11 +179,11 @@ std::unique_ptr<esl::com::http::client::Connection> ConnectionFactory::createCon
 
 	if(hasLowSpeedLimit || hasLowSpeedTime) {
 		if(!hasLowSpeedLimit) {
-            throw esl::addStacktrace(std::runtime_error("curl4esl: 'lowSpeedTime' specified but 'lowSpeedLimit' is missing."));
+            throw esl::stacktrace::Stacktrace::add(std::runtime_error("curl4esl: 'lowSpeedTime' specified but 'lowSpeedLimit' is missing."));
 		}
 
 		if(!hasLowSpeedTime) {
-            throw esl::addStacktrace(std::runtime_error("curl4esl: 'lowSpeedLimit' specified but 'lowSpeedTime' is missing."));
+            throw esl::stacktrace::Stacktrace::add(std::runtime_error("curl4esl: 'lowSpeedLimit' specified but 'lowSpeedTime' is missing."));
 		}
 
         curl_easy_setopt(curl, CURLOPT_LOW_SPEED_LIMIT, lowSpeedLimit);
