@@ -54,31 +54,22 @@ private:
 	std::string url;
 
 	long timeout = 0;
-	bool hasTimeout = false;
 
+	bool hasLowSpeedDefinition = false;
 	long lowSpeedLimit = 0;
-	bool hasLowSpeedLimit = false;
-
 	long lowSpeedTime = 0;
-	bool hasLowSpeedTime = false;
 
 	std::string username;
-	bool hasUsername = false;
-
 	std::string password;
-	bool hasPassword = false;
 
 	std::string proxyServer;
-	bool hasProxyServer = false;
 
 	std::string proxyUsername;
-	bool hasProxyUsername = false;
-
 	std::string proxyPassword;
-	bool hasProxyPassword = false;
 
-	std::string userAgent;
-	bool hasUserAgent = false;
+	std::string userAgent = "esl-http-client";
+
+	bool skipSSLVerification = false;
 };
 
 } /* namespace client */

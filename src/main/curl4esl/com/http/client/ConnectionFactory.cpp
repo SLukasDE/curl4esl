@@ -26,6 +26,7 @@ SOFTWARE.
 
 #include <esl/utility/String.h>
 #include <esl/utility/URL.h>
+#include <esl/utility/String.h>
 #include <esl/stacktrace/Stacktrace.h>
 
 #include <stdexcept>
@@ -84,6 +85,12 @@ std::unique_ptr<esl::com::http::client::Interface::ConnectionFactory> Connection
 }
 
 ConnectionFactory::ConnectionFactory(const std::vector<std::pair<std::string, std::string>>& settings) {
+	bool hasLowSpeedLimit = false;
+	bool hasLowSpeedTime = false;
+	bool hasUserAgent = false;
+	bool hasTimeout = false;
+	bool hasSkipSSLVerification = false;
+
     for(const auto& setting : settings) {
 		if(setting.first == "url") {
 			if(!url.empty()) {
@@ -101,48 +108,110 @@ ConnectionFactory::ConnectionFactory(const std::vector<std::pair<std::string, st
 		}
 
 		else if(setting.first == "timeout") {
+			if(hasTimeout) {
+	            throw std::runtime_error("curl4esl: multiple definition of attribute 'timeout'.");
+			}
 			hasTimeout = true;
 			timeout = std::stol(setting.second);
+			if(timeout < 0) {
+	            throw std::runtime_error("curl4esl: Invalid value \"" + std::to_string(timeout) + "\" for attribute 'timeout'.");
+			}
 		}
 
-		else if(setting.first == "lowSpeedLimit") {
+		else if(setting.first == "low-speed-limit") {
+			if(hasLowSpeedLimit) {
+	            throw std::runtime_error("curl4esl: multiple definition of attribute 'low-speed-limit'.");
+			}
 			hasLowSpeedLimit = true;
 			lowSpeedLimit = std::stol(setting.second);
+			if(lowSpeedLimit < 0) {
+	            throw std::runtime_error("curl4esl: Invalid value \"" + std::to_string(lowSpeedLimit) + "\" for attribute 'low-speed-limit'.");
+			}
 		}
 
-		else if(setting.first == "lowSpeedTime") {
+		else if(setting.first == "low-speed-time") {
+			if(hasLowSpeedTime) {
+	            throw std::runtime_error("curl4esl: multiple definition of attribute 'low-speed-time'.");
+			}
 			hasLowSpeedTime = true;
 			lowSpeedTime = std::stol(setting.second);
+			if(lowSpeedTime < 0) {
+	            throw std::runtime_error("curl4esl: Invalid value \"" + std::to_string(lowSpeedTime) + "\" for attribute 'low-speed-time'.");
+			}
 		}
 
 		else if(setting.first == "username") {
-			hasUsername = true;
+			if(!username.empty()) {
+	            throw std::runtime_error("curl4esl: multiple definition of attribute 'username'.");
+			}
 			username = setting.second;
+			if(username.empty()) {
+	            throw std::runtime_error("curl4esl: Invalid value \"\" for attribute 'username'.");
+			}
 		}
 
 		else if(setting.first == "password") {
-			hasPassword = true;
+			if(!password.empty()) {
+	            throw std::runtime_error("curl4esl: multiple definition of attribute 'password'.");
+			}
 			password = setting.second;
+			if(password.empty()) {
+	            throw std::runtime_error("curl4esl: Invalid value \"\" for attribute 'password'.");
+			}
 		}
 
-		else if(setting.first == "proxyServer") {
-			hasProxyServer = true;
+		else if(setting.first == "proxy-server") {
+			if(!proxyServer.empty()) {
+	            throw std::runtime_error("curl4esl: multiple definition of attribute 'proxy-server'.");
+			}
 			proxyServer = setting.second;
+			if(proxyServer.empty()) {
+	            throw std::runtime_error("curl4esl: invalid value \"\" for attribute 'proxy-server'.");
+			}
 		}
 
-		else if(setting.first == "proxyUsername") {
-			hasProxyUsername = true;
+		else if(setting.first == "proxy-username") {
+			if(!proxyUsername.empty()) {
+	            throw std::runtime_error("curl4esl: multiple definition of attribute 'proxy-username'.");
+			}
 			proxyUsername = setting.second;
+			if(proxyUsername.empty()) {
+	            throw std::runtime_error("curl4esl: invalid value \"\" for attribute 'proxy-username'.");
+			}
 		}
 
-		else if(setting.first == "proxyPassword") {
-			hasProxyPassword = true;
+		else if(setting.first == "proxy-password") {
+			if(!proxyPassword.empty()) {
+	            throw std::runtime_error("curl4esl: multiple definition of attribute 'proxy-password'.");
+			}
 			proxyPassword = setting.second;
+			if(proxyPassword.empty()) {
+	            throw std::runtime_error("curl4esl: invalid value \"\" for attribute 'proxy-password'.");
+			}
 		}
 
-		else if(setting.first == "userAgent") {
-			hasUserAgent = true;
+		else if(setting.first == "user-ugent") {
+			if(hasUserAgent) {
+	            throw std::runtime_error("curl4esl: multiple definition of attribute 'user-ugent'.");
+			}
 			userAgent = setting.second;
+			hasUserAgent = true;
+		}
+
+		else if(setting.first == "skip-ssl-verification") {
+			if(hasSkipSSLVerification) {
+	            throw std::runtime_error("curl4esl: multiple definition of attribute 'skip-ssl-verification'.");
+			}
+			std::string value = esl::utility::String::toLower(setting.second);
+			if(value == "true") {
+				skipSSLVerification = true;
+			}
+			else if(value == "false") {
+				skipSSLVerification = false;
+			}
+			else {
+		    	throw std::runtime_error("Invalid value \"" + setting.second + "\" for attribute 'skip-ssl-verification'");
+			}
 		}
 
 		else {
@@ -152,6 +221,25 @@ ConnectionFactory::ConnectionFactory(const std::vector<std::pair<std::string, st
 
 	if(url.empty()) {
         throw std::runtime_error("curl4esl: Attribute 'url' is missing.");
+	}
+
+	if(hasLowSpeedLimit || hasLowSpeedTime) {
+		if(!hasLowSpeedLimit) {
+            throw std::runtime_error("curl4esl: attribute 'low-speed-time' specified but attribute 'low-speed-limit' is missing.");
+		}
+		if(!hasLowSpeedTime) {
+            throw std::runtime_error("curl4esl: attribute 'lowSpeedLimit' specified but attribute 'low-speed-time' is missing.");
+		}
+		hasLowSpeedDefinition = true;
+	}
+
+	if(proxyServer.empty()) {
+		if(!proxyUsername.empty()) {
+            throw std::runtime_error("curl4esl: attribute 'proxy-username' specified but attribute 'proxy-server' is missing.");
+		}
+		if(!proxyPassword.empty()) {
+            throw std::runtime_error("curl4esl: attribute 'proxy-password' specified but attribute 'proxy-server' is missing.");
+		}
 	}
 }
 
@@ -169,54 +257,40 @@ std::unique_ptr<esl::com::http::client::Connection> ConnectionFactory::createCon
     // (nur wen Timeout gesetzt wird ?)
     curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
 
-	if(hasTimeout && timeout > 0) {
+	if(timeout > 0) {
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout);
 	}
 
-	if(hasProxyServer) {
-		curl_easy_setopt(curl, CURLOPT_PROXY, proxyServer.c_str());
-	}
-
-	if(hasLowSpeedLimit || hasLowSpeedTime) {
-		if(!hasLowSpeedLimit) {
-            throw esl::stacktrace::Stacktrace::add(std::runtime_error("curl4esl: 'lowSpeedTime' specified but 'lowSpeedLimit' is missing."));
-		}
-
-		if(!hasLowSpeedTime) {
-            throw esl::stacktrace::Stacktrace::add(std::runtime_error("curl4esl: 'lowSpeedLimit' specified but 'lowSpeedTime' is missing."));
-		}
-
+	if(hasLowSpeedDefinition) {
         curl_easy_setopt(curl, CURLOPT_LOW_SPEED_LIMIT, lowSpeedLimit);
         curl_easy_setopt(curl, CURLOPT_LOW_SPEED_TIME, lowSpeedTime);
 	}
 
     /** set basic authentication if present*/
-	if(hasUsername || hasPassword) {
+	if(!username.empty() || !password.empty()) {
 		std::string basicAuthentication = createAuthenticationStr(username, password);
         curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
         curl_easy_setopt(curl, CURLOPT_USERPWD, basicAuthentication.c_str());
 	}
 
-	if(hasProxyUsername || hasProxyPassword) {
-		if(hasProxyServer) {
-			std::string proxyAuthentication = createAuthenticationStr(proxyUsername, proxyPassword);
-        	curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, proxyAuthentication.c_str());
-		}
-		else {
-			logger.warn << "Definition of key \"proxyUser\" or \"proxyPassword\" without definition of proxy server \"proxyServer\".\n";
-		}
+	if(!proxyServer.empty()) {
+		curl_easy_setopt(curl, CURLOPT_PROXY, proxyServer.c_str());
+	}
+
+	if(!proxyUsername.empty() || !proxyPassword.empty()) {
+		std::string proxyAuthentication = createAuthenticationStr(proxyUsername, proxyPassword);
+    	curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, proxyAuthentication.c_str());
 	}
 
     /** set user agent */
-	if(hasUserAgent) {
+	if(!userAgent.empty()) {
 	    curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent.c_str());
-	}
-	else {
-	    curl_easy_setopt(curl, CURLOPT_USERAGENT, "esl-http-client");
 	}
 
 	/* ignore SSL certificate */
-	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+	if(skipSSLVerification) {
+		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+	}
 
 	return std::unique_ptr<esl::com::http::client::Connection>(new Connection(curl, url));
 }
