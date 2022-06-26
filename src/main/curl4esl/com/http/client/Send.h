@@ -23,7 +23,7 @@ SOFTWARE.
 #ifndef CURL4ESL_COM_HTTP_CLIENT_SEND_H_
 #define CURL4ESL_COM_HTTP_CLIENT_SEND_H_
 
-#include <esl/com/http/client/Interface.h>
+//#include <esl/com/http/client/IConnectionFactory.h>
 #include <esl/com/http/client/Request.h>
 #include <esl/com/http/client/Response.h>
 #include <esl/io/Input.h>

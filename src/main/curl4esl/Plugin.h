@@ -20,20 +20,19 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <curl4esl/Module.h>
-#include <curl4esl/com/http/client/ConnectionFactory.h>
+#ifndef CURL4ESL_PLUGIN_H_
+#define CURL4ESL_PLUGIN_H_
 
-#include <esl/com/http/client/Interface.h>
-#include <esl/Module.h>
+#include <esl/plugin/Registry.h>
 
 namespace curl4esl {
 
-void Module::install(esl::module::Module& module) {
-	esl::setModule(module);
-
-	module.addInterface(esl::com::http::client::Interface::createInterface(
-			com::http::client::ConnectionFactory::getImplementation(),
-			&com::http::client::ConnectionFactory::create));
-}
+class Plugin final {
+public:
+	Plugin() = delete;
+	static void install(esl::plugin::Registry& registry, const char* data);
+};
 
 } /* namespace curl4esl */
+
+#endif /* CURL4ESL_PLUGIN_H_ */

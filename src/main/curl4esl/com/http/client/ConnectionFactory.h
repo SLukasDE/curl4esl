@@ -23,7 +23,7 @@ SOFTWARE.
 #ifndef CURL4ESL_COM_HTTP_CLIENT_CONNECTIONFACTORY_H_
 #define CURL4ESL_COM_HTTP_CLIENT_CONNECTIONFACTORY_H_
 
-#include <esl/com/http/client/Interface.h>
+#include <esl/com/http/client/IConnectionFactory.h>
 #include <esl/com/http/client/Connection.h>
 
 #include <curl/curl.h>
@@ -38,13 +38,9 @@ namespace com {
 namespace http {
 namespace client {
 
-class ConnectionFactory : public esl::com::http::client::Interface::ConnectionFactory {
+class ConnectionFactory : public esl::com::http::client::IConnectionFactory {
 public:
-	static std::unique_ptr<esl::com::http::client::Interface::ConnectionFactory> create(const std::vector<std::pair<std::string, std::string>>& settings);
-
-	static inline const char* getImplementation() {
-		return "curl4esl";
-	}
+	static std::unique_ptr<esl::com::http::client::IConnectionFactory> create(const std::vector<std::pair<std::string, std::string>>& settings);
 
 	ConnectionFactory(const std::vector<std::pair<std::string, std::string>>& settings);
 
