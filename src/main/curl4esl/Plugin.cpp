@@ -32,9 +32,9 @@ namespace curl4esl {
 void Plugin::install(esl::plugin::Registry& registry, const char* data) {
 	esl::plugin::Registry::set(registry);
 
-	registry.addPlugin(std::unique_ptr<const esl::plugin::BasePlugin>(new esl::com::http::client::IConnectionFactory::Plugin(
+	registry.addPlugin<esl::com::http::client::IConnectionFactory>(
 			"curl4esl/com/http/client/ConnectionFactory",
-			&com::http::client::ConnectionFactory::create)));
+			com::http::client::ConnectionFactory::create);
 }
 
 } /* namespace curl4esl */
