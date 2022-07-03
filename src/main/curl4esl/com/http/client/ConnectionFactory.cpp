@@ -27,7 +27,7 @@ SOFTWARE.
 #include <esl/utility/String.h>
 #include <esl/utility/URL.h>
 #include <esl/utility/String.h>
-#include <esl/system/stacktrace/IStacktrace.h>
+#include <esl/system/Stacktrace.h>
 
 #include <stdexcept>
 
@@ -51,7 +51,7 @@ struct CurlSingleton {
     CURL* easyInit() {
     	CURL* curlPtr = curl_easy_init();
     	if(curlPtr == nullptr) {
-            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl init error"));
+            throw esl::system::Stacktrace::add(std::runtime_error("curl init error"));
     	}
     	return curlPtr;
     }
@@ -68,7 +68,7 @@ std::string createAuthenticationStr(const std::string& username, const std::stri
 
 }
 
-std::unique_ptr<esl::com::http::client::IConnectionFactory> ConnectionFactory::create(const std::vector<std::pair<std::string, std::string>>& settings) {
+std::unique_ptr<esl::com::http::client::ConnectionFactory> ConnectionFactory::create(const std::vector<std::pair<std::string, std::string>>& settings) {
 /*
 	std::string url = hostUrl.getScheme().toString() + "://" + hostUrl.getHostname();
 
@@ -82,7 +82,7 @@ std::unique_ptr<esl::com::http::client::IConnectionFactory> ConnectionFactory::c
 	}
 	*/
 
-	return std::unique_ptr<esl::com::http::client::IConnectionFactory>(new ConnectionFactory(settings));
+	return std::unique_ptr<esl::com::http::client::ConnectionFactory>(new ConnectionFactory(settings));
 }
 
 ConnectionFactory::ConnectionFactory(const std::vector<std::pair<std::string, std::string>>& settings) {
@@ -95,105 +95,105 @@ ConnectionFactory::ConnectionFactory(const std::vector<std::pair<std::string, st
     for(const auto& setting : settings) {
 		if(setting.first == "url") {
 			if(!url.empty()) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'url'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'url'."));
 			}
 			url = esl::utility::String::rtrim(setting.second, '/');
 			if(url.empty()) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: Invalid value \"\" for attribute 'url'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: Invalid value \"\" for attribute 'url'."));
 			}
 
 			esl::utility::URL aURL(url);
 			if(aURL.getScheme() != esl::utility::Protocol::Type::http && aURL.getScheme() != esl::utility::Protocol::Type::https) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: Invalid scheme in value \"" + url + "\" of attribute 'url'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: Invalid scheme in value \"" + url + "\" of attribute 'url'."));
 			}
 		}
 
 		else if(setting.first == "timeout") {
 			if(hasTimeout) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'timeout'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'timeout'."));
 			}
 			hasTimeout = true;
 			timeout = esl::utility::String::toLong(setting.second);
 			if(timeout < 0) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: Invalid value \"" + std::to_string(timeout) + "\" for attribute 'timeout'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: Invalid value \"" + std::to_string(timeout) + "\" for attribute 'timeout'."));
 			}
 		}
 
 		else if(setting.first == "low-speed-limit") {
 			if(hasLowSpeedLimit) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'low-speed-limit'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'low-speed-limit'."));
 			}
 			hasLowSpeedLimit = true;
 			lowSpeedLimit = esl::utility::String::toLong(setting.second);
 			if(lowSpeedLimit < 0) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: Invalid value \"" + std::to_string(lowSpeedLimit) + "\" for attribute 'low-speed-limit'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: Invalid value \"" + std::to_string(lowSpeedLimit) + "\" for attribute 'low-speed-limit'."));
 			}
 		}
 
 		else if(setting.first == "low-speed-time") {
 			if(hasLowSpeedTime) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'low-speed-time'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'low-speed-time'."));
 			}
 			hasLowSpeedTime = true;
 			lowSpeedTime = esl::utility::String::toLong(setting.second);
 			if(lowSpeedTime < 0) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: Invalid value \"" + std::to_string(lowSpeedTime) + "\" for attribute 'low-speed-time'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: Invalid value \"" + std::to_string(lowSpeedTime) + "\" for attribute 'low-speed-time'."));
 			}
 		}
 
 		else if(setting.first == "username") {
 			if(!username.empty()) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'username'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'username'."));
 			}
 			username = setting.second;
 			if(username.empty()) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: Invalid value \"\" for attribute 'username'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: Invalid value \"\" for attribute 'username'."));
 			}
 		}
 
 		else if(setting.first == "password") {
 			if(!password.empty()) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'password'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'password'."));
 			}
 			password = setting.second;
 			if(password.empty()) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: Invalid value \"\" for attribute 'password'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: Invalid value \"\" for attribute 'password'."));
 			}
 		}
 
 		else if(setting.first == "proxy-server") {
 			if(!proxyServer.empty()) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'proxy-server'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'proxy-server'."));
 			}
 			proxyServer = setting.second;
 			if(proxyServer.empty()) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: invalid value \"\" for attribute 'proxy-server'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: invalid value \"\" for attribute 'proxy-server'."));
 			}
 		}
 
 		else if(setting.first == "proxy-username") {
 			if(!proxyUsername.empty()) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'proxy-username'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'proxy-username'."));
 			}
 			proxyUsername = setting.second;
 			if(proxyUsername.empty()) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: invalid value \"\" for attribute 'proxy-username'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: invalid value \"\" for attribute 'proxy-username'."));
 			}
 		}
 
 		else if(setting.first == "proxy-password") {
 			if(!proxyPassword.empty()) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'proxy-password'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'proxy-password'."));
 			}
 			proxyPassword = setting.second;
 			if(proxyPassword.empty()) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: invalid value \"\" for attribute 'proxy-password'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: invalid value \"\" for attribute 'proxy-password'."));
 			}
 		}
 
 		else if(setting.first == "user-ugent") {
 			if(hasUserAgent) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'user-ugent'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'user-ugent'."));
 			}
 			userAgent = setting.second;
 			hasUserAgent = true;
@@ -201,7 +201,7 @@ ConnectionFactory::ConnectionFactory(const std::vector<std::pair<std::string, st
 
 		else if(setting.first == "skip-ssl-verification") {
 			if(hasSkipSSLVerification) {
-	            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'skip-ssl-verification'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'skip-ssl-verification'."));
 			}
 			std::string value = esl::utility::String::toLower(setting.second);
 			if(value == "true") {
@@ -211,35 +211,35 @@ ConnectionFactory::ConnectionFactory(const std::vector<std::pair<std::string, st
 				skipSSLVerification = false;
 			}
 			else {
-		    	throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("Invalid value \"" + setting.second + "\" for attribute 'skip-ssl-verification'"));
+		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid value \"" + setting.second + "\" for attribute 'skip-ssl-verification'"));
 			}
 		}
 
 		else {
-            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("unknown attribute '\"" + setting.first + "\"'."));
+            throw esl::system::Stacktrace::add(std::runtime_error("unknown attribute '\"" + setting.first + "\"'."));
 		}
     }
 
 	if(url.empty()) {
-        throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: Attribute 'url' is missing."));
+        throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: Attribute 'url' is missing."));
 	}
 
 	if(hasLowSpeedLimit || hasLowSpeedTime) {
 		if(!hasLowSpeedLimit) {
-            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: attribute 'low-speed-time' specified but attribute 'low-speed-limit' is missing."));
+            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: attribute 'low-speed-time' specified but attribute 'low-speed-limit' is missing."));
 		}
 		if(!hasLowSpeedTime) {
-            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: attribute 'lowSpeedLimit' specified but attribute 'low-speed-time' is missing."));
+            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: attribute 'lowSpeedLimit' specified but attribute 'low-speed-time' is missing."));
 		}
 		hasLowSpeedDefinition = true;
 	}
 
 	if(proxyServer.empty()) {
 		if(!proxyUsername.empty()) {
-            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: attribute 'proxy-username' specified but attribute 'proxy-server' is missing."));
+            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: attribute 'proxy-username' specified but attribute 'proxy-server' is missing."));
 		}
 		if(!proxyPassword.empty()) {
-            throw esl::system::stacktrace::IStacktrace::add(std::runtime_error("curl4esl: attribute 'proxy-password' specified but attribute 'proxy-server' is missing."));
+            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: attribute 'proxy-password' specified but attribute 'proxy-server' is missing."));
 		}
 	}
 }
@@ -247,11 +247,12 @@ ConnectionFactory::ConnectionFactory(const std::vector<std::pair<std::string, st
 std::unique_ptr<esl::com::http::client::Connection> ConnectionFactory::createConnection(/*const esl::com::http::client::Interface::Settings& settings*/) const {
 	CURL* curl = curlSingleton.easyInit();
 
-    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
+	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+	curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
     curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);
-    curl_easy_setopt(curl, CURLOPT_AUTOREFERER, 1L);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 10L);
+    curl_easy_setopt(curl, CURLOPT_AUTOREFERER, 0L);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
+    //curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 10L);
     curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "");
 
     // dont want to get a sig alarm on timeoutInSec

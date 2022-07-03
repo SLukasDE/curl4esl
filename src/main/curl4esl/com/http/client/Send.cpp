@@ -26,7 +26,7 @@ SOFTWARE.
 
 #include <esl/com/http/client/exception/NetworkError.h>
 #include <esl/utility/String.h>
-#include <esl/system/stacktrace/IStacktrace.h>
+#include <esl/system/Stacktrace.h>
 
 #include <sstream>
 #include <cstring>
@@ -137,7 +137,7 @@ esl::com::http::client::Response Send::execute() {
 		}
 
 		std::string str = strStream.str();
-		throw esl::system::stacktrace::IStacktrace::add(esl::com::http::client::exception::NetworkError(static_cast<int>(rc), str));
+		throw esl::system::Stacktrace::add(esl::com::http::client::exception::NetworkError(static_cast<int>(rc), str));
 	}
 
 	if(requestHeaders) {
@@ -172,7 +172,7 @@ size_t Send::readDataCallback(void* data, size_t size, size_t nmemb, void* sendP
 		logger.warn << "std::runtime_error" << "\n";
 		logger.warn << "what() = " << e.what() << "\n";
 
-		const esl::system::stacktrace::IStacktrace* stacktrace = esl::system::stacktrace::IStacktrace::get(e);
+		const esl::system::Stacktrace* stacktrace = esl::system::Stacktrace::get(e);
 		if(stacktrace) {
 			logger.warn << "Stacktrace:\n";
 			stacktrace->dump(logger.warn);
@@ -184,7 +184,7 @@ size_t Send::readDataCallback(void* data, size_t size, size_t nmemb, void* sendP
 		logger.warn << "std::exception" << "\n";
 		logger.warn << "what() = " << e.what() << "\n";
 
-		const esl::system::stacktrace::IStacktrace* stacktrace = esl::system::stacktrace::IStacktrace::get(e);
+		const esl::system::Stacktrace* stacktrace = esl::system::Stacktrace::get(e);
 		if(stacktrace) {
 			logger.warn << "Stacktrace:\n";
 			stacktrace->dump(logger.warn);
@@ -253,7 +253,7 @@ size_t Send::writeDataCallback(void* data, size_t size, size_t nmemb, void* send
 		logger.warn << "std::runtime_error" << "\n";
 		logger.warn << "what() = " << e.what() << "\n";
 
-		const esl::system::stacktrace::IStacktrace* stacktrace = esl::system::stacktrace::IStacktrace::get(e);
+		const esl::system::Stacktrace* stacktrace = esl::system::Stacktrace::get(e);
 		if(stacktrace) {
 			logger.warn << "Stacktrace:\n";
 			stacktrace->dump(logger.warn);
@@ -265,7 +265,7 @@ size_t Send::writeDataCallback(void* data, size_t size, size_t nmemb, void* send
 		logger.warn << "std::exception" << "\n";
 		logger.warn << "what() = " << e.what() << "\n";
 
-		const esl::system::stacktrace::IStacktrace* stacktrace = esl::system::stacktrace::IStacktrace::get(e);
+		const esl::system::Stacktrace* stacktrace = esl::system::Stacktrace::get(e);
 		if(stacktrace) {
 			logger.warn << "Stacktrace:\n";
 			stacktrace->dump(logger.warn);

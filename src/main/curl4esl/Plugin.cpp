@@ -23,7 +23,7 @@ SOFTWARE.
 #include <curl4esl/Plugin.h>
 #include <curl4esl/com/http/client/ConnectionFactory.h>
 
-#include <esl/com/http/client/IConnectionFactory.h>
+#include <esl/com/http/client/ConnectionFactory.h>
 
 #include <memory>
 
@@ -32,7 +32,7 @@ namespace curl4esl {
 void Plugin::install(esl::plugin::Registry& registry, const char* data) {
 	esl::plugin::Registry::set(registry);
 
-	registry.addPlugin<esl::com::http::client::IConnectionFactory>(
+	registry.addPlugin<esl::com::http::client::ConnectionFactory>(
 			"curl4esl/com/http/client/ConnectionFactory",
 			com::http::client::ConnectionFactory::create);
 }
