@@ -85,14 +85,14 @@ std::unique_ptr<esl::com::http::client::ConnectionFactory> ConnectionFactory::cr
 	return std::unique_ptr<esl::com::http::client::ConnectionFactory>(new ConnectionFactory(settings));
 }
 
-ConnectionFactory::ConnectionFactory(const std::vector<std::pair<std::string, std::string>>& settings) {
+ConnectionFactory::ConnectionFactory(const std::vector<std::pair<std::string, std::string>>& aSettings) {
 	bool hasLowSpeedLimit = false;
 	bool hasLowSpeedTime = false;
 	bool hasUserAgent = false;
 	bool hasTimeout = false;
 	bool hasSkipSSLVerification = false;
 
-    for(const auto& setting : settings) {
+    for(const auto& setting : aSettings) {
 		if(setting.first == "url") {
 			if(!url.empty()) {
 	            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'url'."));
@@ -211,12 +211,12 @@ ConnectionFactory::ConnectionFactory(const std::vector<std::pair<std::string, st
 				skipSSLVerification = false;
 			}
 			else {
-		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid value \"" + setting.second + "\" for attribute 'skip-ssl-verification'"));
+		    	throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: Invalid value \"" + setting.second + "\" for attribute 'skip-ssl-verification'"));
 			}
 		}
 
 		else {
-            throw esl::system::Stacktrace::add(std::runtime_error("unknown attribute '\"" + setting.first + "\"'."));
+            throw esl::system::Stacktrace::add(std::runtime_error("curl4esl: unknown attribute '\"" + setting.first + "\"'."));
 		}
     }
 
