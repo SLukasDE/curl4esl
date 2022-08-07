@@ -244,7 +244,7 @@ ConnectionFactory::ConnectionFactory(const std::vector<std::pair<std::string, st
 	}
 }
 
-std::unique_ptr<esl::com::http::client::Connection> ConnectionFactory::createConnection(/*const esl::com::http::client::Interface::Settings& settings*/) const {
+std::unique_ptr<esl::com::http::client::Connection> ConnectionFactory::createConnection() const {
 	CURL* curl = curlSingleton.easyInit();
 
 	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
