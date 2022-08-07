@@ -32,13 +32,14 @@ SOFTWARE.
 #include <curl/curl.h>
 
 #include <cstddef>
-#include <string>
-#include <vector>
+#include <cstdint>
+#include <exception>
+#include <functional>
 #include <list>
 #include <map>
 #include <memory>
-#include <cstdint>
-#include <functional>
+#include <string>
+#include <vector>
 
 namespace curl4esl {
 namespace com {
@@ -105,6 +106,8 @@ private:
 	std::size_t currentPos = 0;
 
 	std::list<Chunk> receiveBuffer;
+
+	std::exception_ptr exceptionPtr;
 };
 
 } /* namespace client */

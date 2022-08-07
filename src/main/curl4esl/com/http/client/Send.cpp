@@ -28,8 +28,8 @@ SOFTWARE.
 #include <esl/utility/String.h>
 #include <esl/system/Stacktrace.h>
 
-#include <sstream>
 #include <cstring>
+#include <sstream>
 
 namespace curl4esl {
 namespace com {
@@ -127,22 +127,18 @@ Send::~Send() {
 esl::com::http::client::Response Send::execute() {
 	CURLcode rc = curl_easy_perform(curl);
 
-	if(rc != CURLE_OK) {
-		std::ostringstream strStream;
-		strStream << "Fehlercode=" << rc << " (" << curl_easy_strerror(rc) << ") bei curl-Anfrage";
-
-		if(requestHeaders) {
-			curl_slist_free_all(requestHeaders);
-			requestHeaders = nullptr;
-		}
-
-		std::string str = strStream.str();
-		throw esl::system::Stacktrace::add(esl::com::http::client::exception::NetworkError(static_cast<int>(rc), str));
+	if(exceptionPtr) {
+		std::rethrow_exception(exceptionPtr);
 	}
 
-	if(requestHeaders) {
-		curl_slist_free_all(requestHeaders);
-		requestHeaders = nullptr;
+	// don't throw error if libcurl could not receive all data but we did not want to receive (more) data
+	if(!input && rc==23) {
+		return getResponse();
+	}
+
+	if(rc != CURLE_OK) {
+		std::string str = "Fehlercode=" + std::to_string(rc) + " (" + curl_easy_strerror(rc) + ") bei curl-Anfrage";
+		throw esl::system::Stacktrace::add(esl::com::http::client::exception::NetworkError(static_cast<int>(rc), str));
 	}
 
 	return getResponse();
@@ -168,6 +164,7 @@ size_t Send::readDataCallback(void* data, size_t size, size_t nmemb, void* sendP
 		/* get upload data */
 		rv = send.readData(data, size * nmemb);
 	}
+#if 0
 	catch(const std::runtime_error& e) {
 		logger.warn << "std::runtime_error" << "\n";
 		logger.warn << "what() = " << e.what() << "\n";
@@ -196,6 +193,12 @@ size_t Send::readDataCallback(void* data, size_t size, size_t nmemb, void* sendP
 		logger.warn << "(exception)\n";
 		return 0;
 	}
+#else
+	catch(...) {
+		send.exceptionPtr = std::current_exception();
+		return 0;
+	}
+#endif
 
 	return rv;
 }
@@ -249,6 +252,7 @@ size_t Send::writeDataCallback(void* data, size_t size, size_t nmemb, void* send
 	try {
 		rv = send.writeData(static_cast<std::uint8_t*>(data), size * nmemb);
 	}
+#if 0
 	catch(const std::runtime_error& e) {
 		logger.warn << "std::runtime_error" << "\n";
 		logger.warn << "what() = " << e.what() << "\n";
@@ -277,6 +281,12 @@ size_t Send::writeDataCallback(void* data, size_t size, size_t nmemb, void* send
 		logger.warn << "(exception)\n";
 		return 0;
 	}
+#else
+	catch(...) {
+		send.exceptionPtr = std::current_exception();
+		return 0;
+	}
+#endif
 
 	return rv;
 }
