@@ -1,6 +1,6 @@
 /*
 MIT License
-Copyright (c) 2019-2022 Sven Lukas
+Copyright (c) 2019-2023 Sven Lukas
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,7 @@ SOFTWARE.
 #include <memory>
 
 namespace curl4esl {
+inline namespace v1_6 {
 
 void Plugin::install(esl::plugin::Registry& registry, const char* data) {
 	esl::plugin::Registry::set(registry);
@@ -37,4 +38,5 @@ void Plugin::install(esl::plugin::Registry& registry, const char* data) {
 			com::http::client::ConnectionFactory::create);
 }
 
+} /* inline namespace v1_6 */
 } /* namespace curl4esl */

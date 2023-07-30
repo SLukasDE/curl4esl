@@ -1,6 +1,6 @@
 /*
 MIT License
-Copyright (c) 2019-2022 Sven Lukas
+Copyright (c) 2019-2023 Sven Lukas
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@ SOFTWARE.
 #include <esl/logging/Level.h>
 
 namespace curl4esl {
+inline namespace v1_6 {
 
 #ifdef CURL4ESL_LOGGING_LEVEL_DEBUG
 using Logger = esl::logging::Logger<esl::logging::Level::TRACE>;
@@ -34,6 +35,7 @@ using Logger = esl::logging::Logger<esl::logging::Level::TRACE>;
 using Logger = esl::logging::Logger<esl::logging::Level::WARN>;
 #endif
 
+} /* inline namespace v1_6 */
 } /* namespace curl4esl */
 
 #endif /* CURL4ESL_LOGGER_H_ */

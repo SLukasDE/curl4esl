@@ -1,6 +1,6 @@
 /*
 MIT License
-Copyright (c) 2019-2022 Sven Lukas
+Copyright (c) 2019-2023 Sven Lukas
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -42,6 +42,7 @@ SOFTWARE.
 #include <vector>
 
 namespace curl4esl {
+inline namespace v1_6 {
 namespace com {
 namespace http {
 namespace client {
@@ -113,6 +114,7 @@ private:
 } /* namespace client */
 } /* namespace http */
 } /* namespace com */
+} /* inline namespace v1_6 */
 } /* namespace curl4esl */
 
 #endif /* CURL4ESL_COM_HTTP_CLIENT_SEND_H_ */
