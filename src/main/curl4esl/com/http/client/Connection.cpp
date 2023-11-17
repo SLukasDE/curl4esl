@@ -22,10 +22,10 @@ SOFTWARE.
 
 #include <curl4esl/com/http/client/Connection.h>
 #include <curl4esl/com/http/client/Send.h>
-#include <curl4esl/Logger.h>
+
+#include <esl/Logger.h>
 
 #include <esl/com/http/client/Response.h>
-#include <esl/utility/String.h>
 
 #include <cstdio>
 #include <sstream>
@@ -39,7 +39,7 @@ namespace http {
 namespace client {
 
 namespace {
-Logger logger("curl4esl::com::http::client::Connection");
+esl::Logger logger("curl4esl::com::http::client::Connection");
 }  // anonymer namespace
 
 Connection::Connection(CURL* aCurl, std::string aHostUrl)

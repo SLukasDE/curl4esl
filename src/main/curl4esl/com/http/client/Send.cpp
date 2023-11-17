@@ -22,11 +22,15 @@ SOFTWARE.
 
 #include <curl4esl/com/http/client/Send.h>
 #include <curl4esl/com/http/client/Connection.h>
-#include <curl4esl/Logger.h>
+
+#include <esl/Logger.h>
+#include <esl/io/Reader.h>
+#include <esl/io/Writer.h>
+#include <esl/utility/String.h>
 
 #include <esl/com/http/client/exception/NetworkError.h>
-#include <esl/utility/String.h>
 #include <esl/system/Stacktrace.h>
+#include <esl/utility/MIME.h>
 
 #include <cstring>
 #include <sstream>
@@ -38,7 +42,21 @@ namespace http {
 namespace client {
 
 namespace {
-Logger logger("curl4esl::com::http::client::Send");
+esl::Logger logger("curl4esl::com::http::client::Send");
+
+esl::utility::MIME findContentType(const std::map<std::string, std::string>& headers) {
+	for(const auto& entry : headers) {
+		if(entry.first == "Content-Type") {
+			// Value could be "text/html; charset=UTF-8", so we have to split for ';' character and we take first element
+			std::vector<std::string> contentTypes = esl::utility::String::split(esl::utility::String::trim(entry.second), ';');
+			if(!contentTypes.empty()) {
+				return esl::utility::MIME(esl::utility::String::trim(contentTypes.front()));
+			}
+			break;
+		}
+	}
+	return esl::utility::MIME();
+}
 }  // anonymer namespace
 
 Send::Send(CURL* curl, const esl::com::http::client::Request& request, const std::string& requestUrl, esl::io::Output& output, std::function<esl::io::Input (const esl::com::http::client::Response&)> createInput)
@@ -385,7 +403,8 @@ const esl::com::http::client::Response& Send::getResponse() {
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
 		responseStatusCode = static_cast<unsigned short>(httpCode);
 
-		response.reset(new esl::com::http::client::Response(responseStatusCode, std::move(responseHeaders)));
+		esl::utility::MIME contentType = findContentType(responseHeaders);
+		response.reset(new esl::com::http::client::Response(responseStatusCode, std::move(responseHeaders), std::move(contentType)));
 	}
 
 	return *response;

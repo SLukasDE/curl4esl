@@ -20,36 +20,61 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef CURL4ESL_COM_HTTP_CLIENT_CONNECTIONFACTORY_H_
-#define CURL4ESL_COM_HTTP_CLIENT_CONNECTIONFACTORY_H_
+#ifndef ESL_COM_HTTP_CLIENT_CURLCONNECTIONFACTORY_H_
+#define ESL_COM_HTTP_CLIENT_CURLCONNECTIONFACTORY_H_
 
 #include <esl/com/http/client/Connection.h>
-#include <esl/com/http/client/CURLConnectionFactory.h>
-
-#include <curl/curl.h>
+#include <esl/com/http/client/ConnectionFactory.h>
 
 #include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
-namespace curl4esl {
+namespace esl {
 inline namespace v1_6 {
 namespace com {
 namespace http {
 namespace client {
 
-class ConnectionFactory : public esl::com::http::client::ConnectionFactory {
+class CURLConnectionFactory : public ConnectionFactory {
 public:
-	ConnectionFactory(esl::com::http::client::CURLConnectionFactory::Settings settings);
+	struct Settings {
+		Settings() = default;
+		Settings(const std::vector<std::pair<std::string, std::string>>& settings);
 
-	std::unique_ptr<esl::com::http::client::Connection> createConnection() const override;
+		std::string url;
+		long timeout = 0;
+
+		bool hasLowSpeedDefinition = false;
+		long lowSpeedLimit = 0;
+		long lowSpeedTime = 0;
+		std::string username;
+		std::string password;
+
+		std::string proxyServer;
+		std::string proxyUsername;
+		std::string proxyPassword;
+
+		std::string userAgent = "esl-http-client";
+
+		bool skipSSLVerification = false;
+	};
+
+	CURLConnectionFactory(const Settings& settings);
+
+	static std::unique_ptr<ConnectionFactory> create(const std::vector<std::pair<std::string, std::string>>& settings);
+
+	std::unique_ptr<Connection> createConnection() const override;
 
 private:
-	esl::com::http::client::CURLConnectionFactory::Settings settings;
+	std::unique_ptr<ConnectionFactory> connectionFactory;
 };
 
 } /* namespace client */
 } /* namespace http */
 } /* namespace com */
 } /* inline namespace v1_6 */
-} /* namespace curl4esl */
+} /* namespace esl */
 
-#endif /* CURL4ESL_COM_HTTP_CLIENT_CONNECTIONFACTORY_H_ */
+#endif /* ESL_COM_HTTP_CLIENT_CURLCONNECTIONFACTORY_H_ */
