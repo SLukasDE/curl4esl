@@ -24,6 +24,7 @@ SOFTWARE.
 #define CURL4ESL_COM_HTTP_CLIENT_CONNECTIONFACTORY_H_
 
 #include <esl/com/http/client/Connection.h>
+#include <esl/com/http/client/ConnectionFactory.h>
 #include <esl/com/http/client/CURLConnectionFactory.h>
 
 #include <curl/curl.h>
@@ -38,7 +39,7 @@ namespace client {
 
 class ConnectionFactory : public esl::com::http::client::ConnectionFactory {
 public:
-	ConnectionFactory(esl::com::http::client::CURLConnectionFactory::Settings settings);
+	ConnectionFactory(const esl::com::http::client::CURLConnectionFactory::Settings& settings);
 
 	std::unique_ptr<esl::com::http::client::Connection> createConnection() const override;
 

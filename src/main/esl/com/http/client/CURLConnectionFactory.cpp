@@ -64,7 +64,7 @@ CURLConnectionFactory::Settings::Settings(const std::vector<std::pair<std::strin
 	            throw system::Stacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'timeout'."));
 			}
 			hasTimeout = true;
-			timeout = utility::String::toLong(setting.second);
+			timeout = utility::String::toNumber<decltype(timeout)>(setting.second);
 			if(timeout < 0) {
 	            throw system::Stacktrace::add(std::runtime_error("curl4esl: Invalid value \"" + std::to_string(timeout) + "\" for attribute 'timeout'."));
 			}
@@ -75,7 +75,7 @@ CURLConnectionFactory::Settings::Settings(const std::vector<std::pair<std::strin
 	            throw system::Stacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'low-speed-limit'."));
 			}
 			hasLowSpeedLimit = true;
-			lowSpeedLimit = utility::String::toLong(setting.second);
+			lowSpeedLimit = utility::String::toNumber<decltype(lowSpeedLimit)>(setting.second);
 			if(lowSpeedLimit < 0) {
 	            throw system::Stacktrace::add(std::runtime_error("curl4esl: Invalid value \"" + std::to_string(lowSpeedLimit) + "\" for attribute 'low-speed-limit'."));
 			}
@@ -86,7 +86,7 @@ CURLConnectionFactory::Settings::Settings(const std::vector<std::pair<std::strin
 	            throw system::Stacktrace::add(std::runtime_error("curl4esl: multiple definition of attribute 'low-speed-time'."));
 			}
 			hasLowSpeedTime = true;
-			lowSpeedTime = utility::String::toLong(setting.second);
+			lowSpeedTime = utility::String::toNumber<decltype(lowSpeedTime)>(setting.second);
 			if(lowSpeedTime < 0) {
 	            throw system::Stacktrace::add(std::runtime_error("curl4esl: Invalid value \"" + std::to_string(lowSpeedTime) + "\" for attribute 'low-speed-time'."));
 			}

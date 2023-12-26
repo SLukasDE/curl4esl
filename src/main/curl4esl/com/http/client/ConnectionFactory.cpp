@@ -67,8 +67,8 @@ std::string createAuthenticationStr(const std::string& username, const std::stri
 
 }
 
-ConnectionFactory::ConnectionFactory(esl::com::http::client::CURLConnectionFactory::Settings aSettings)
-: settings(std::move(aSettings))
+ConnectionFactory::ConnectionFactory(const esl::com::http::client::CURLConnectionFactory::Settings& aSettings)
+: settings(aSettings)
 { }
 
 std::unique_ptr<esl::com::http::client::Connection> ConnectionFactory::createConnection() const {
