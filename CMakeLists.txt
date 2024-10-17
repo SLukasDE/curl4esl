@@ -1,61 +1,37 @@
 cmake_minimum_required(VERSION 3.23)
 
-project(curl4esl VERSION 1.5.0
-            LANGUAGES CXX)
-            
-#include(FetchContent)
-#FetchContent_Declare(
-#  catch
-#  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-#  GIT_TAG        v2.13.6
-#)
-#FetchContent_MakeAvailable(catch)
+project(
+    curl4esl
+    VERSION 1.6.0
+    LANGUAGES CXX)
 
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-# The compiled library code is here
-#add_subdirectory(src/main)
-# STATIC, SHARED, MODULE, INTERFACE
-add_library(curl4esl STATIC
-      ./src/main/curl4esl/Plugin.cpp
-      ./src/main/curl4esl/Plugin.h
-      ./src/main/curl4esl/Logger.h
-      ./src/main/curl4esl/com/http/client/ConnectionFactory.h
-      ./src/main/curl4esl/com/http/client/Send.h
-      ./src/main/curl4esl/com/http/client/Connection.h
-      ./src/main/curl4esl/com/http/client/Send.cpp
-      ./src/main/curl4esl/com/http/client/Connection.cpp
-      ./src/main/curl4esl/com/http/client/ConnectionFactory.cpp
-#      ./lib.cpp
-)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
-target_include_directories(curl4esl PUBLIC ./src/main)
-target_compile_features(curl4esl PUBLIC cxx_std_11)
-set_property(TARGET curl4esl PROPERTY POSITION_INDEPENDENT_CODE ON)
+include(Packages)
 
-find_package(esl REQUIRED)
-find_package(CURL REQUIRED)
+option(COMPILE_UNITTESTS "Weather to compile unittests" ON)
 
-target_link_libraries(curl4esl PRIVATE esl::esl)
-target_link_libraries(curl4esl PRIVATE CURL::libcurl)
+if(NOT ALL_IN_ONE_ESL)
+    find_package_esl()
+    find_package_CURL()
+endif(NOT ALL_IN_ONE_ESL)
 
-install(TARGETS curl4esl
-        EXPORT curl4esl-export
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-)
+add_subdirectory(src/main)
 
-install(EXPORT      curl4esl-export
-        FILE        curl4eslTargets.cmake
-        NAMESPACE   curl4esl::
-        DESTINATION lib/cmake
-)
+if(COMPILE_UNITTESTS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/test/main.cpp")
+    add_subdirectory(src/test)
+endif()
 
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/curl4eslConfig.cmake
-        DESTINATION "lib/cmake"
-)
+if(NOT ALL_IN_ONE_ESL)
+    install(EXPORT ${PROJECT_NAME}Targets
+        FILE ${PROJECT_NAME}Targets.cmake
+        NAMESPACE ${PROJECT_NAME}::
+        DESTINATION lib/cmake/${PROJECT_NAME})
 
-
-
-
-# The compiled test code is here
-#add_subdirectory(src/test)
+    install(FILES "${PROJECT_NAME}Config.cmake" DESTINATION lib/cmake/${PROJECT_NAME})
+    #install(FILES "${PROJECT_NAME}Config.cmake" "${PROJECT_NAME}ConfigVersion.cmake" DESTINATION lib/cmake/${PROJECT_NAME})
+endif(NOT ALL_IN_ONE_ESL)

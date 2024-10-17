@@ -196,11 +196,15 @@ CURLConnectionFactory::Settings::Settings(const std::vector<std::pair<std::strin
 }
 
 CURLConnectionFactory::CURLConnectionFactory(const Settings& settings)
-: connectionFactory(new curl4esl::com::http::client::ConnectionFactory(settings))
+: connectionFactory(createNative(settings))
 { }
 
 std::unique_ptr<ConnectionFactory> CURLConnectionFactory::create(const std::vector<std::pair<std::string, std::string>>& settings) {
 	return std::unique_ptr<ConnectionFactory>(new CURLConnectionFactory(Settings(settings)));
+}
+
+std::unique_ptr<ConnectionFactory> CURLConnectionFactory::createNative(const Settings& settings) {
+	return std::unique_ptr<ConnectionFactory>(new curl4esl::com::http::client::ConnectionFactory(settings));
 }
 
 std::unique_ptr<Connection> CURLConnectionFactory::createConnection() const {
